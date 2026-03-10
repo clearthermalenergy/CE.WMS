@@ -1,0 +1,252 @@
+/* ============================================
+   Dashboard Styles
+   ============================================ */
+.dashboard-date {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.dashboard-chart-card,
+.dashboard-activity-card {
+    padding: 1.25rem;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.card-header h3 {
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+.chart-container {
+    height: 240px;
+    position: relative;
+}
+
+/* Activity List */
+.activity-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.activity-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 6px;
+}
+
+.activity-dot.task {
+    background: var(--accent-primary);
+}
+
+.activity-dot.lead {
+    background: var(--accent-secondary);
+}
+
+.activity-dot.leave {
+    background: var(--accent-warning);
+}
+
+.activity-dot.login {
+    background: var(--text-tertiary);
+}
+
+.activity-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-action {
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.activity-detail {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    margin-top: 0.125rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.activity-meta {
+    display: flex;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin-top: 0.25rem;
+}
+
+/* Dashboard Bottom Grid */
+.dashboard-bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.dashboard-bottom-grid .glass-card {
+    padding: 1.25rem;
+}
+
+/* Leave Stats Mini */
+.leave-stats-mini {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.leave-stat-item {
+    text-align: center;
+}
+
+.leave-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.leave-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.text-warning {
+    color: var(--accent-warning);
+}
+
+.text-amber {
+    color: #f97316;
+}
+
+.text-green {
+    color: var(--accent-secondary);
+}
+
+/* Leave List Mini */
+.leave-list-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.leave-item-mini {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.leave-item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.leave-item-name {
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.leave-item-type {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+/* Team List */
+.team-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.team-member {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.team-member-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.team-member-name {
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.team-member-dept {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.status-indicator.online {
+    background: var(--accent-secondary);
+    box-shadow: 0 0 6px rgba(6, 214, 160, 0.5);
+}
+
+.status-indicator.offline {
+    background: var(--text-tertiary);
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .dashboard-activity-card {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 768px) {
+
+    .dashboard-grid,
+    .dashboard-bottom-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .leave-stats-mini {
+        grid-template-columns: 1fr;
+    }
+}

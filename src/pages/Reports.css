@@ -1,0 +1,65 @@
+/* ============================================
+   Reports Styles
+   ============================================ */
+.reports-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.report-card {
+    padding: 1.25rem;
+}
+
+.report-card h3 {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.report-card.full-width {
+    grid-column: 1 / -1;
+}
+
+.report-chart {
+    height: 260px;
+    position: relative;
+}
+
+.report-chart.wide {
+    height: 300px;
+}
+
+.report-stats {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    padding: 1rem 0;
+}
+
+.report-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.report-stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.report-stat span:last-child {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+    .reports-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .report-stats {
+        gap: 1rem;
+    }
+}

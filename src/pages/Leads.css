@@ -1,0 +1,291 @@
+/* ============================================
+   Leads / Pipeline Styles
+   ============================================ */
+.lead-stats-bar {
+    display: flex;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.lead-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.lead-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+}
+
+.lead-stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.text-blue {
+    color: var(--accent-info);
+}
+
+.text-indigo {
+    color: var(--accent-primary-light);
+}
+
+.lead-stat-divider {
+    width: 1px;
+    height: 36px;
+    background: var(--border-color);
+}
+
+/* View Toggle */
+.view-toggle {
+    display: flex;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.view-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all var(--transition-fast);
+}
+
+.view-btn.active {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.view-btn:hover:not(.active) {
+    background: var(--bg-glass-hover);
+}
+
+/* Pipeline Board */
+.pipeline-board {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+}
+
+.pipeline-column {
+    min-width: 260px;
+    max-width: 280px;
+    flex-shrink: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+}
+
+.pipeline-header {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.pipeline-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.pipeline-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.pipeline-total {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.pipeline-cards {
+    flex: 1;
+    padding: 0.625rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow-y: auto;
+    max-height: 60vh;
+}
+
+/* Lead Card */
+.lead-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.875rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.lead-card:hover {
+    border-color: var(--border-color-light);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.lead-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.lead-card-top h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    flex: 1;
+    margin-right: 0.5rem;
+}
+
+.lead-card-value {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--accent-secondary);
+    white-space: nowrap;
+}
+
+.lead-card-person {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    margin-bottom: 0.5rem;
+}
+
+.lead-card-meta {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.lead-card-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.lead-card-followup {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    color: var(--accent-warning);
+}
+
+/* Table Specific */
+.lead-company-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.lead-company-cell span {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.lead-contact-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.lead-contact-cell .text-muted {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.stage-badge {
+    display: inline-flex;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.table-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+/* Lead Detail */
+.lead-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.lead-detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.lead-detail-item.full {
+    grid-column: 1 / -1;
+}
+
+.lead-detail-item label {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+}
+
+.lead-detail-item span,
+.lead-detail-item p {
+    font-size: 0.875rem;
+}
+
+.lead-detail-value {
+    font-size: 1.125rem !important;
+    font-weight: 700;
+    color: var(--accent-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .lead-stats-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .lead-stat-divider {
+        width: 100%;
+        height: 1px;
+    }
+
+    .lead-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .view-toggle {
+        width: 100%;
+    }
+
+    .view-btn {
+        flex: 1;
+        text-align: center;
+    }
+}

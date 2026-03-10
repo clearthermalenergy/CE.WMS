@@ -1,0 +1,81 @@
+# CE-WMS Backend Deployment Guide
+
+This guide will walk you through hosting your [server.js](file:///c:/Users/hello/OneDrive/Desktop/anti%20gravity/new/server.js) backend on Render and setting up a free remote database on MongoDB Atlas.
+
+## 1. Set Up MongoDB Atlas (Database)
+
+First, we need to create a live, remote database so your backend can save data persistently anywhere in the world.
+
+1. Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register) and sign up for a free account.
+2. Build a New Cluster:
+   - Select **M0 Free** as your cluster tier.
+   - Choose a cloud provider and region close to where you live.
+   - Click **Create Deployment**.
+3. Security Setup:
+   - Create a database user. Note down the **Username** and **Password** (you will need this later).
+   - Under "Network Access" or "IP Access List", click **Add IP Address**. Choose **Allow Access from Anywhere** (IP `0.0.0.0/0`) since we'll be deploying to a cloud service.
+4. Get Your Connection String:
+   - Go to your Database Deployments page and click **Connect**.
+   - Choose **Drivers** (Node.js).
+   - Copy the provided connection string. It will look something like this:
+     `mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority`
+   - **Important**: Replace `<password>` with the password you just created in step 3. 
+   - Change the `mongodb.net/?` part to add your database name. E.g., `mongodb.net/ce-wms-db?`.
+
+*Keep this final connection string handy. You will need it in the next phase.*
+
+---
+
+## 2. Prepare Your Code for Render
+
+Render connects directly to your GitHub account to deploy your code. 
+
+1. Create a new public or private repository on [GitHub](https://github.com/).
+2. Push your entire `ce-wms` folder to this new repository. Ensure your [package.json](file:///c:/Users/hello/OneDrive/Desktop/anti%20gravity/new/package.json) includes the backend dependencies (`express`, `mongoose`, `cors`, etc.) and a start script (e.g., `"start": "node server.js"`).
+
+---
+
+## 3. Host Backend on Render
+
+Now, we deploy the Node.js/Express [server.js](file:///c:/Users/hello/OneDrive/Desktop/anti%20gravity/new/server.js) file.
+
+1. Go to [Render](https://render.com/) and create a free account.
+2. Click **New +** and select **Web Service**.
+3. Choose **Build and deploy from a Git repository** and connect your GitHub account.
+4. Select the `ce-wms` repository you just created.
+5. Configure the Web Service:
+   - **Name:** e.g., `ce-wms-api`
+   - **Region:** Choose the region closest to you.
+   - **Branch:** `main` (or `master`)
+   - **Root Directory:** Leave blank if [server.js](file:///c:/Users/hello/OneDrive/Desktop/anti%20gravity/new/server.js) is in the root, or type the folder name if it's inside a subfolder.
+   - **Runtime:** Node
+   - **Build Command:** `npm install`
+   - **Start Command:** `node server.js`
+   - **Instance Type:** Choose the **Free** tier.
+
+6. Configure Environment Variables:
+   Scroll down to the **Environment Variables** section and add the following keys:
+   
+   - Key: `MONGODB_URI`
+     Value: *(Paste the MongoDB Atlas connection string you copied in step 1)*
+   
+   - Key: `JWT_SECRET`
+     Value: *(Create a random, secure string. e.g., `supersecretcewmskey2026`)*
+   
+   - Key: `ALLOWED_ORIGINS`
+     Value: `http://localhost,capacitor://localhost,http://localhost:5173` *(We will add your live frontend URL to this later if you deploy the web version, but this allows your Capacitor mobile app to connect).*
+
+7. Click **Create Web Service**.
+
+---
+
+## 4. Final Verification
+
+Render will now build and deploy your application. This may take a few minutes. 
+Once it says **Live** (green badge), copy the URL provided at the top left of the Render dashboard (it will look like `https://ce-wms-api-xxxx.onrender.com`).
+
+**Next Steps:**
+Paste that live Render URL back here in the chat! Once you give me the URL, I will:
+1. Update your local frontend code to point to this new live server.
+2. Build the final React app.
+3. Help you run the Capacitor commands to wrap it into an Android/iOS app!
