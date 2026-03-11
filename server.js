@@ -340,6 +340,23 @@ app.put('/api/notifications/mark-all-read', async (req, res) => {
 app.put('/api/notifications/:id', async (req, res) => res.json(await Notification.findOneAndUpdate({ id: req.params.id }, req.body, { new: true })));
 
 // ============================================
+// SERVE FRONTEND BUILD (Production Web App)
+// ============================================
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Serve standard files from the React build
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Catch-all route to serve `index.html` for any unmatched route (React Router handling)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// ============================================
 // START SERVER
 // ============================================
 app.listen(PORT, () => {
