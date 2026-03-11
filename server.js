@@ -146,6 +146,16 @@ function authMiddleware(req, res, next) {
     }
 }
 
+// Temporary public seed endpoint since auth depends on seeded users
+app.get('/api/seed-db', async (req, res) => {
+    try {
+        await runSeed();
+        res.send('<h2>Database seeded perfectly! You can now close this tab, go back to your app, and log in.</h2>');
+    } catch (err) {
+        res.status(500).send('Failed to seed database: ' + err.message);
+    }
+});
+
 app.use('/api', authMiddleware);
 
 // ============================================
@@ -180,8 +190,13 @@ app.get('/api/data', async (req, res) => {
 });
 
 // Data reset (just re-seed by invoking seed script logic, or return a message saying to run seed.js)
-app.post('/api/data/reset', (req, res) => {
-    res.status(400).json({ error: 'Data reset disabled in DB mode. Run `npm run seed` manually.' });
+app.post('/api/data/reset', async (req, res) => {
+    try {
+        await runSeed();
+        res.json({ success: true, message: 'Database seeded successfully on live server!' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to seed database' });
+    }
 });
 
 // ============================================
