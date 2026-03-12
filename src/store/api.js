@@ -7,7 +7,7 @@
 const BASE = import.meta.env.VITE_API_URL || '/api';
 
 // Auth token management
-let _authToken = localStorage.getItem('ce_wms_token') || null;
+let _authToken = sessionStorage.getItem('ce_wms_token') || null;
 
 export function setAuthToken(token) {
     _authToken = token;
@@ -36,7 +36,7 @@ async function request(url, options = {}) {
 
     // Handle 401 — token expired or invalid
     if (res.status === 401 && !url.includes('/auth/')) {
-        localStorage.removeItem('ce_wms_token');
+        sessionStorage.removeItem('ce_wms_token');
         _authToken = null;
         window.location.reload();
         throw new Error('Session expired. Please login again.');

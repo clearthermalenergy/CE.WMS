@@ -5,7 +5,7 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
-    const [token, setToken] = useState(() => localStorage.getItem('ce_wms_token'));
+    const [token, setToken] = useState(() => sessionStorage.getItem('ce_wms_token'));
     const [loading, setLoading] = useState(true);
 
     // On mount, verify token
@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
                 })
                 .catch(() => {
                     // Token invalid/expired
-                    localStorage.removeItem('ce_wms_token');
+                    sessionStorage.removeItem('ce_wms_token');
                     setToken(null);
                     api.setAuthToken(null);
                     setLoading(false);
@@ -31,7 +31,7 @@ export function AuthProvider({ children }) {
 
     const login = useCallback(async (email, password) => {
         const data = await api.loginUser(email, password);
-        localStorage.setItem('ce_wms_token', data.token);
+        sessionStorage.setItem('ce_wms_token', data.token);
         api.setAuthToken(data.token);
         setToken(data.token);
         setUser(data.user);
@@ -39,7 +39,8 @@ export function AuthProvider({ children }) {
     }, []);
 
     const logout = useCallback(() => {
-        localStorage.removeItem('ce_wms_token');
+        sessionStorage.removeItem('ce_wms_token');
+        localStorage.removeItem('ce_wms_token'); // Clear legacy token if someone still has it cached
         api.setAuthToken(null);
         setToken(null);
         setUser(null);
