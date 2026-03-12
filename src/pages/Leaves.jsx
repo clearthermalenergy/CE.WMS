@@ -22,7 +22,7 @@ export default function Leaves() {
     const [tab, setTab] = useState('requests');
 
     const rp = rolePermissions?.find(r => r.role === user?.role)?.permissions || {};
-    const canApprove = rp.approve_leave || rp.full_system_control;
+    const canApprove = user?.role === 'Admin' || rp.approve_leave || rp.full_system_control;
     const [filterStatus, setFilterStatus] = useState('All');
     const [filterType, setFilterType] = useState('All');
     const [selectedEmployee, setSelectedEmployee] = useState('All');
