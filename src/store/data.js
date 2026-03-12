@@ -339,10 +339,19 @@ export const store = {
   // Settings operations (API-backed)
   // ============================================
   async updateRolePermissions(role, permissions) {
-    this._setLocal(d => ({
-      ...d,
-      rolePermissions: d.rolePermissions.map(rp => rp.role === role ? { ...rp, permissions } : rp)
-    }));
+    this._setLocal(d => {
+      const exists = d.rolePermissions.find(rp => rp.role === role);
+      if (exists) {
+        return {
+          ...d,
+          rolePermissions: d.rolePermissions.map(rp => rp.role === role ? { ...rp, permissions } : rp)
+        };
+      }
+      return {
+        ...d,
+        rolePermissions: [...d.rolePermissions, { role, permissions }]
+      };
+    });
     try {
       await api.updateRolePermissions(role, permissions);
     } catch (err) {
