@@ -105,3 +105,6 @@ export const fetchNotifications = () => request('/notifications');
 export const createNotification = (data) => request('/notifications', { method: 'POST', body: data });
 export const updateNotification = (id, data) => request(`/notifications/${id}`, { method: 'PUT', body: data });
 export const markAllNotificationsRead = () => request('/notifications/mark-all-read', { method: 'PUT' });
+
+// Settings
+export const updateRolePermissions = (role, permissions) => request('/settings/roles', { method: 'PUT', body: { role, permissions } });

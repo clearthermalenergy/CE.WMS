@@ -1,4 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useStore } from '../hooks/useStore';
 import {
     LayoutDashboard, CheckSquare, Users, UserCog, CalendarDays,
     BarChart3, Activity, Settings, Zap, ChevronLeft, ChevronRight,
@@ -20,6 +22,17 @@ const navItems = [
 export default function Sidebar({ mobileOpen, onClose }) {
     const [collapsed, setCollapsed] = useState(false);
     const location = useLocation();
+    const { user } = useAuth(); // getting role from auth directly
+    const { data } = useStore();
+
+    const rp = data?.rolePermissions?.find(r => r.role === user?.role)?.permissions || {};
+    const isAdmin = rp.full_system_control;
+
+    const visibleNavItems = navItems.filter(item => {
+        if (item.label === 'Users') return rp.manage_users || isAdmin;
+        if (item.label === 'Reports') return rp.view_reports || isAdmin;
+        return true;
+    });
 
     return (
         <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
@@ -41,7 +54,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
             </div>
 
             <nav className="sidebar-nav">
-                {navItems.map(({ path, icon: Icon, label }) => (
+                {visibleNavItems.map(({ path, icon: Icon, label }) => (
                     <NavLink
                         key={path}
                         to={path}
@@ -56,10 +69,12 @@ export default function Sidebar({ mobileOpen, onClose }) {
             </nav>
 
             <div className="sidebar-footer">
-                <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-                    <Settings size={20} />
-                    {!collapsed && <span>Settings</span>}
-                </NavLink>
+                {isAdmin && (
+                    <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                        <Settings size={20} />
+                        {!collapsed && <span>Settings</span>}
+                    </NavLink>
+                )}
             </div>
         </aside>
     );

@@ -9,6 +9,7 @@ import Leave from './models/Leave.js';
 import LeaveBalance from './models/LeaveBalance.js';
 import Activity from './models/Activity.js';
 import Notification from './models/Notification.js';
+import RolePermission from './models/RolePermission.js';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ce-wms';
 
@@ -16,6 +17,11 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ce-wms
 const defaultPasswordHash = bcrypt.hashSync('Welcome@123', 10);
 
 const seedData = {
+    rolePermissions: [
+        { role: 'Admin', permissions: { full_system_control: true, manage_team_tasks: true, personal_tasks: true, view_all_leads: true, manage_assigned_leads: true, approve_leave: true, apply_leave: true, view_reports: true, manage_users: true } },
+        { role: 'Manager', permissions: { full_system_control: false, manage_team_tasks: true, personal_tasks: true, view_all_leads: true, manage_assigned_leads: true, approve_leave: true, apply_leave: true, view_reports: true, manage_users: false } },
+        { role: 'Employee', permissions: { full_system_control: false, manage_team_tasks: false, personal_tasks: true, view_all_leads: false, manage_assigned_leads: true, approve_leave: false, apply_leave: true, view_reports: false, manage_users: false } }
+    ],
     employees: [
         { id: 'EMP001', name: 'Rajesh Kumar', email: 'rajesh@clearenergy.in', phone: '+91 98765 43210', department: 'Sales', role: 'Manager', manager: '', joinDate: '2022-03-15', status: 'Active', password: defaultPasswordHash },
         { id: 'EMP002', name: 'Priya Sharma', email: 'priya@clearenergy.in', phone: '+91 87654 32109', department: 'Sales', role: 'Employee', manager: 'EMP001', joinDate: '2023-01-10', status: 'Active', password: defaultPasswordHash },
@@ -107,7 +113,8 @@ export async function runSeed(uri) {
             Leave.deleteMany({}),
             LeaveBalance.deleteMany({}),
             Activity.deleteMany({}),
-            Notification.deleteMany({})
+            Notification.deleteMany({}),
+            RolePermission.deleteMany({})
         ]);
 
         await Employee.insertMany(seedData.employees);
@@ -117,6 +124,7 @@ export async function runSeed(uri) {
         await LeaveBalance.insertMany(seedData.leaveBalances);
         await Activity.insertMany(seedData.activities);
         await Notification.insertMany(seedData.notifications);
+        await RolePermission.insertMany(seedData.rolePermissions);
 
         console.log('✅ Database seeded successfully!');
     } catch (error) {

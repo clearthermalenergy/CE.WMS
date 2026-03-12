@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useStore } from '../hooks/useStore';
+import { useAuth } from '../context/AuthContext';
 import { getInitials, getAvatarColor, formatDate } from '../store/data';
-import { Plus, Search, Edit2, Trash2, X, Mail, Phone, Building, Calendar, Shield } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, Mail, Phone, Building, Calendar, Shield, Lock } from 'lucide-react';
 import './Users.css';
 
 const DEPARTMENTS = ['Sales', 'Engineering', 'Marketing', 'HR', 'Operations', 'Finance'];
@@ -9,12 +10,26 @@ const ROLES = ['Admin', 'Manager', 'Employee'];
 
 export default function Users() {
     const { data, store } = useStore();
-    const { employees } = data;
+    const { user } = useAuth();
+    const { employees, rolePermissions } = data;
     const [showModal, setShowModal] = useState(false);
     const [editUser, setEditUser] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterDept, setFilterDept] = useState('All');
     const [filterRole, setFilterRole] = useState('All');
+
+    const rp = rolePermissions?.find(r => r.role === user?.role)?.permissions || {};
+    const canManageUsers = rp.manage_users || rp.full_system_control;
+
+    if (!canManageUsers) {
+        return (
+            <div className="users-page animate-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', textAlign: 'center' }}>
+                <Lock size={64} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
+                <h2>Access Denied</h2>
+                <p style={{ color: 'var(--text-muted)' }}>You need User Management privileges to view or manage users.</p>
+            </div>
+        );
+    }
 
     const filteredEmployees = employees.filter(e => {
         if (searchTerm && !e.name.toLowerCase().includes(searchTerm.toLowerCase()) && !e.email.toLowerCase().includes(searchTerm.toLowerCase())) return false;
@@ -128,36 +143,55 @@ export default function Users() {
             {/* Permission Matrix */}
             <div className="permission-section glass-card">
                 <h3>Role Permissions</h3>
-                <table className="data-table">
-                    <thead>
-                        <tr>
-                            <th>Permission</th>
-                            <th>Admin</th>
-                            <th>Manager</th>
-                            <th>Employee</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {[
-                            ['Full System Control', true, false, false],
-                            ['Manage Team Tasks', true, true, false],
-                            ['Personal Tasks', true, true, true],
-                            ['View All Leads', true, true, false],
-                            ['Manage Assigned Leads', true, true, true],
-                            ['Approve Leave', true, true, false],
-                            ['Apply Leave', true, true, true],
-                            ['View Reports', true, true, false],
-                            ['Manage Users', true, false, false],
-                        ].map(([perm, admin, manager, employee]) => (
-                            <tr key={perm}>
-                                <td>{perm}</td>
-                                <td>{admin ? '✅' : '❌'}</td>
-                                <td>{manager ? '✅' : '❌'}</td>
-                                <td>{employee ? '✅' : '❌'}</td>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '14px' }}>Toggle permissions for each role dynamically. Changes take effect immediately.</p>
+                <div style={{ overflowX: 'auto' }}>
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th style={{ textAlign: 'left' }}>Permission</th>
+                                <th>Admin</th>
+                                <th>Manager</th>
+                                <th>Employee</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {[
+                                { key: 'full_system_control', label: 'Full System Control (Overrides All)' },
+                                { key: 'manage_team_tasks', label: 'Manage Team Tasks' },
+                                { key: 'personal_tasks', label: 'Personal Tasks' },
+                                { key: 'view_all_leads', label: 'View All Leads' },
+                                { key: 'manage_assigned_leads', label: 'Manage Assigned Leads' },
+                                { key: 'approve_leave', label: 'Approve Leave' },
+                                { key: 'apply_leave', label: 'Apply Leave' },
+                                { key: 'view_reports', label: 'View Reports' },
+                                { key: 'manage_users', label: 'Manage Users' },
+                            ].map(({ key, label }) => (
+                                <tr key={key}>
+                                    <td style={{ textAlign: 'left', fontWeight: '500' }}>{label}</td>
+                                    {['Admin', 'Manager', 'Employee'].map(role => {
+                                        const rp = rolePermissions.find(r => r.role === role);
+                                        const isChecked = rp?.permissions[key] || false;
+                                        return (
+                                            <td key={role} style={{ textAlign: 'center' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isChecked}
+                                                    onChange={e => {
+                                                        const newVal = e.target.checked;
+                                                        const currentPerms = rp ? { ...rp.permissions } : {};
+                                                        currentPerms[key] = newVal;
+                                                        store.updateRolePermissions(role, currentPerms);
+                                                    }}
+                                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                                />
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Add/Edit Modal */}

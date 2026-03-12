@@ -12,6 +12,7 @@ import Leave from './models/Leave.js';
 import LeaveBalance from './models/LeaveBalance.js';
 import Activity from './models/Activity.js';
 import Notification from './models/Notification.js';
+import RolePermission from './models/RolePermission.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -134,16 +135,42 @@ app.get('/api/auth/me', async (req, res) => {
 // ============================================
 // AUTH MIDDLEWARE
 // ============================================
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'Auth required' });
 
     try {
-        req.user = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
+        const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
+        req.user = decoded;
+        
+        // Load dynamic permissions for this role and attach to req.user
+        const rolePerm = await RolePermission.findOne({ role: decoded.role });
+        req.user.permissions = rolePerm ? rolePerm.permissions : {};
+        
         next();
     } catch (err) {
         res.status(401).json({ error: 'Invalid token' });
     }
+}
+
+function requireAdmin(req, res, next) {
+    if (!req.user.permissions.full_system_control) return res.status(403).json({ error: 'Admin permission required' });
+    next();
+}
+
+function requireManageUsers(req, res, next) {
+    if (!req.user.permissions.manage_users && !req.user.permissions.full_system_control) return res.status(403).json({ error: 'Manage Users permission required' });
+    next();
+}
+
+function requireManageTeamTasks(req, res, next) {
+    if (!req.user.permissions.manage_team_tasks && !req.user.permissions.full_system_control) return res.status(403).json({ error: 'Manage Tasks permission required' });
+    next();
+}
+
+function requireManageLeads(req, res, next) {
+    if (!req.user.permissions.manage_assigned_leads && !req.user.permissions.full_system_control) return res.status(403).json({ error: 'Manage Leads permission required' });
+    next();
 }
 
 // Temporary public seed endpoint since auth depends on seeded users
@@ -163,14 +190,53 @@ app.use('/api', authMiddleware);
 // ============================================
 app.get('/api/data', async (req, res) => {
     try {
-        const [employees, tasks, leads, leaves, leaveBalancesArr, activities, notifications] = await Promise.all([
-            Employee.find().select('-password'),
-            Task.find(),
-            Lead.find(),
-            Leave.find(),
-            LeaveBalance.find(),
-            Activity.find().sort({ timestamp: -1 }).limit(50),
-            Notification.find().sort({ timestamp: -1 })
+        const userRole = req.user.role;
+        const userId = req.user.id;
+        const emp = await Employee.findOne({ id: userId });
+
+        let employeesQuery = {};
+        let tasksQuery = {};
+        let leadsQuery = {};
+        let leavesQuery = {};
+        let leaveBalancesQuery = {};
+        let activitiesQuery = {};
+
+        const perms = req.user.permissions;
+
+        if (perms.full_system_control) {
+            // Admin sees everything, no filters needed
+        } else if (perms.manage_team_tasks) {
+            // Manager level view
+            const deptEmps = await Employee.find({ department: emp.department });
+            const deptEmpIds = deptEmps.map(e => e.id);
+            const directReports = await Employee.find({ manager: userId });
+            const directReportIds = directReports.map(e => e.id);
+            if (!deptEmpIds.includes(userId)) deptEmpIds.push(userId);
+            if (!directReportIds.includes(userId)) directReportIds.push(userId);
+
+            tasksQuery = { $or: [{ assignedTo: { $in: deptEmpIds } }, { createdBy: { $in: deptEmpIds } }] };
+            leadsQuery = perms.view_all_leads ? {} : { assignedTo: { $in: deptEmpIds } };
+            leavesQuery = { employeeId: { $in: directReportIds } };
+            leaveBalancesQuery = { empId: { $in: directReportIds } };
+        } else {
+            // Base employee view
+            employeesQuery = { id: userId };
+            tasksQuery = { $or: [{ assignedTo: userId }, { createdBy: userId }] };
+            leadsQuery = { assignedTo: userId };
+            leavesQuery = { employeeId: userId };
+            leaveBalancesQuery = { empId: userId };
+            activitiesQuery = { user: userId };
+        }
+
+        const [employees, tasks, leads, leaves, leaveBalancesArr, activities, notifications, rolePermissions] = await Promise.all([
+            Employee.find(employeesQuery).select('-password'),
+            Task.find(tasksQuery),
+            Lead.find(leadsQuery),
+            Leave.find(leavesQuery),
+            LeaveBalance.find(leaveBalancesQuery),
+            Activity.find(activitiesQuery).sort({ timestamp: -1 }).limit(perms.full_system_control ? 50 : 20),
+            Notification.find({ userId: req.user.id }).sort({ timestamp: -1 }),
+            RolePermission.find()
         ]);
 
         // Convert leaveBalances array to object keyed by empId for frontend compatibility
@@ -181,7 +247,7 @@ app.get('/api/data', async (req, res) => {
         });
 
         res.json({
-            employees, tasks, leads, leaves, leaveBalances, activities, notifications,
+            employees, tasks, leads, leaves, leaveBalances, activities, notifications, rolePermissions,
             currentUser: req.user.id
         });
     } catch (err) {
@@ -213,7 +279,7 @@ app.get('/api/employees/:id', async (req, res) => {
     res.json(emp);
 });
 
-app.post('/api/employees', async (req, res) => {
+app.post('/api/employees', requireManageUsers, async (req, res) => {
     const newEmp = new Employee({
         ...req.body,
         id: generateId('EMP'),
@@ -223,7 +289,7 @@ app.post('/api/employees', async (req, res) => {
     res.status(201).json(sanitizeEmployee(newEmp));
 });
 
-app.put('/api/employees/:id', async (req, res) => {
+app.put('/api/employees/:id', requireManageUsers, async (req, res) => {
     const data = { ...req.body };
     if (data.password) {
         data.password = bcrypt.hashSync(data.password, 10);
@@ -232,7 +298,7 @@ app.put('/api/employees/:id', async (req, res) => {
     res.json(emp);
 });
 
-app.delete('/api/employees/:id', async (req, res) => {
+app.delete('/api/employees/:id', requireManageUsers, async (req, res) => {
     await Employee.findOneAndDelete({ id: req.params.id });
     res.json({ success: true });
 });
@@ -244,6 +310,9 @@ app.get('/api/tasks', async (req, res) => res.json(await Task.find()));
 app.get('/api/tasks/:id', async (req, res) => res.json(await Task.findOne({ id: req.params.id })));
 
 app.post('/api/tasks', async (req, res) => {
+    if (req.user.role === 'Employee' && req.body.assignedTo !== req.user.id && req.body.createdBy !== req.user.id) {
+        return res.status(403).json({ error: 'Employees can only create tasks for themselves' });
+    }
     const newTask = new Task({
         ...req.body,
         id: generateId('TSK'),
@@ -262,7 +331,7 @@ app.put('/api/tasks/:id', async (req, res) => {
     res.json(task);
 });
 
-app.delete('/api/tasks/:id', async (req, res) => {
+app.delete('/api/tasks/:id', requireManageTeamTasks, async (req, res) => {
     await Task.findOneAndDelete({ id: req.params.id });
     res.json({ success: true });
 });
@@ -273,7 +342,7 @@ app.delete('/api/tasks/:id', async (req, res) => {
 app.get('/api/leads', async (req, res) => res.json(await Lead.find()));
 app.get('/api/leads/:id', async (req, res) => res.json(await Lead.findOne({ id: req.params.id })));
 
-app.post('/api/leads', async (req, res) => {
+app.post('/api/leads', requireManageLeads, async (req, res) => {
     const newLead = new Lead({ ...req.body, id: generateId('LD'), createdAt: new Date().toISOString() });
     await newLead.save();
     await Activity.create({
@@ -282,8 +351,8 @@ app.post('/api/leads', async (req, res) => {
     res.status(201).json(newLead);
 });
 
-app.put('/api/leads/:id', async (req, res) => res.json(await Lead.findOneAndUpdate({ id: req.params.id }, req.body, { new: true })));
-app.delete('/api/leads/:id', async (req, res) => { await Lead.findOneAndDelete({ id: req.params.id }); res.json({ success: true }); });
+app.put('/api/leads/:id', requireManageLeads, async (req, res) => res.json(await Lead.findOneAndUpdate({ id: req.params.id }, req.body, { new: true })));
+app.delete('/api/leads/:id', requireAdmin, async (req, res) => { await Lead.findOneAndDelete({ id: req.params.id }); res.json({ success: true }); });
 
 // ============================================
 // LEAVES
@@ -292,6 +361,10 @@ app.get('/api/leaves', async (req, res) => res.json(await Leave.find()));
 app.get('/api/leaves/:id', async (req, res) => res.json(await Leave.findOne({ id: req.params.id })));
 
 app.post('/api/leaves', async (req, res) => {
+    // Only apply for oneself
+    if (req.user.role === 'Employee' && req.body.employeeId !== req.user.id) {
+        return res.status(403).json({ error: 'Employees can only apply for their own leaves' });
+    }
     const newLeave = new Leave({ ...req.body, id: generateId('LV'), appliedOn: new Date().toISOString(), status: 'Pending' });
     await newLeave.save();
     const emp = await Employee.findOne({ id: newLeave.employeeId });
@@ -301,7 +374,25 @@ app.post('/api/leaves', async (req, res) => {
     res.status(201).json(newLeave);
 });
 
-app.put('/api/leaves/:id', async (req, res) => res.json(await Leave.findOneAndUpdate({ id: req.params.id }, req.body, { new: true })));
+app.put('/api/leaves/:id', async (req, res) => {
+    // Check permission logic
+    if (!req.user.permissions.approve_leave && !req.user.permissions.full_system_control && req.body.status !== 'Pending') {
+        const existing = await Leave.findOne({ id: req.params.id });
+        if (existing && existing.status !== req.body.status) {
+            return res.status(403).json({ error: 'Permission required to approve/reject leaves' });
+        }
+    }
+    res.json(await Leave.findOneAndUpdate({ id: req.params.id }, req.body, { new: true }))
+});
+
+// ============================================
+// SETTINGS
+// ============================================
+app.put('/api/settings/roles', requireAdmin, async (req, res) => {
+    const { role, permissions } = req.body;
+    const rp = await RolePermission.findOneAndUpdate({ role }, { permissions }, { new: true, upsert: true });
+    res.json(rp);
+});
 
 // ============================================
 // LEAVE BALANCES

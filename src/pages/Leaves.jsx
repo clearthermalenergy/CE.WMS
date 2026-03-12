@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../hooks/useStore';
+import { useAuth } from '../context/AuthContext';
 import { getInitials, getAvatarColor, formatDate } from '../store/data';
 import { Plus, Search, Check, X, Calendar, Clock, Briefcase, Heart, AlertTriangle, Home, Filter } from 'lucide-react';
 import './Leaves.css';
@@ -15,9 +16,13 @@ const LEAVE_ICONS = {
 
 export default function Leaves() {
     const { data, store } = useStore();
-    const { leaves, employees, leaveBalances } = data;
+    const { user } = useAuth();
+    const { leaves, employees, leaveBalances, rolePermissions } = data;
     const [showModal, setShowModal] = useState(false);
     const [tab, setTab] = useState('requests');
+
+    const rp = rolePermissions?.find(r => r.role === user?.role)?.permissions || {};
+    const canApprove = rp.approve_leave || rp.full_system_control;
     const [filterStatus, setFilterStatus] = useState('All');
     const [filterType, setFilterType] = useState('All');
     const [selectedEmployee, setSelectedEmployee] = useState('All');
@@ -156,14 +161,18 @@ export default function Leaves() {
 
                                     <div className="leave-req-actions">
                                         {leave.status === 'Pending' ? (
-                                            <>
-                                                <button className="btn btn-sm btn-approve" onClick={() => handleApprove(leave.id)}>
-                                                    <Check size={14} /> Approve
-                                                </button>
-                                                <button className="btn btn-sm btn-reject" onClick={() => handleReject(leave.id)}>
-                                                    <X size={14} /> Reject
-                                                </button>
-                                            </>
+                                            canApprove ? (
+                                                <>
+                                                    <button className="btn btn-sm btn-approve" onClick={() => handleApprove(leave.id)}>
+                                                        <Check size={14} /> Approve
+                                                    </button>
+                                                    <button className="btn btn-sm btn-reject" onClick={() => handleReject(leave.id)}>
+                                                        <X size={14} /> Reject
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <span className="badge badge-warning">Pending</span>
+                                            )
                                         ) : (
                                             <span className={`badge badge-${leave.status === 'Approved' ? 'success' : 'danger'}`}>
                                                 {leave.status}

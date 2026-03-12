@@ -62,6 +62,7 @@ function getDefaultData() {
     leaveBalances: {},
     activities: [],
     notifications: [],
+    rolePermissions: [],
     currentUser: 'EMP006',
   };
 }
@@ -331,6 +332,21 @@ export const store = {
       await api.markAllNotificationsRead();
     } catch (err) {
       console.error('markAllNotificationsRead failed:', err);
+    }
+  },
+
+  // ============================================
+  // Settings operations (API-backed)
+  // ============================================
+  async updateRolePermissions(role, permissions) {
+    this._setLocal(d => ({
+      ...d,
+      rolePermissions: d.rolePermissions.map(rp => rp.role === role ? { ...rp, permissions } : rp)
+    }));
+    try {
+      await api.updateRolePermissions(role, permissions);
+    } catch (err) {
+      console.error('updateRolePermissions failed:', err);
     }
   },
 };
