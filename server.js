@@ -154,22 +154,22 @@ async function authMiddleware(req, res, next) {
 }
 
 function requireAdmin(req, res, next) {
-    if (!req.user.permissions.full_system_control) return res.status(403).json({ error: 'Admin permission required' });
+    if (req.user.role !== 'Admin' && !req.user.permissions?.full_system_control) return res.status(403).json({ error: 'Admin permission required' });
     next();
 }
 
 function requireManageUsers(req, res, next) {
-    if (!req.user.permissions.manage_users && !req.user.permissions.full_system_control) return res.status(403).json({ error: 'Manage Users permission required' });
+    if (req.user.role !== 'Admin' && !req.user.permissions?.manage_users && !req.user.permissions?.full_system_control) return res.status(403).json({ error: 'Manage Users permission required' });
     next();
 }
 
 function requireManageTeamTasks(req, res, next) {
-    if (!req.user.permissions.manage_team_tasks && !req.user.permissions.full_system_control) return res.status(403).json({ error: 'Manage Tasks permission required' });
+    if (req.user.role !== 'Admin' && !req.user.permissions?.manage_team_tasks && !req.user.permissions?.full_system_control) return res.status(403).json({ error: 'Manage Tasks permission required' });
     next();
 }
 
 function requireManageLeads(req, res, next) {
-    if (!req.user.permissions.manage_assigned_leads && !req.user.permissions.full_system_control) return res.status(403).json({ error: 'Manage Leads permission required' });
+    if (req.user.role !== 'Admin' && !req.user.permissions?.manage_assigned_leads && !req.user.permissions?.full_system_control) return res.status(403).json({ error: 'Manage Leads permission required' });
     next();
 }
 
@@ -201,9 +201,9 @@ app.get('/api/data', async (req, res) => {
         let leaveBalancesQuery = {};
         let activitiesQuery = {};
 
-        const perms = req.user.permissions;
+        const perms = req.user.permissions || {};
 
-        if (perms.full_system_control) {
+        if (userRole === 'Admin' || perms.full_system_control) {
             // Admin sees everything, no filters needed
         } else if (perms.manage_team_tasks) {
             // Manager level view
@@ -234,7 +234,7 @@ app.get('/api/data', async (req, res) => {
             Lead.find(leadsQuery),
             Leave.find(leavesQuery),
             LeaveBalance.find(leaveBalancesQuery),
-            Activity.find(activitiesQuery).sort({ timestamp: -1 }).limit(perms.full_system_control ? 50 : 20),
+            Activity.find(activitiesQuery).sort({ timestamp: -1 }).limit((userRole === 'Admin' || perms.full_system_control) ? 50 : 20),
             Notification.find({ userId: req.user.id }).sort({ timestamp: -1 }),
             RolePermission.find()
         ]);
@@ -376,7 +376,7 @@ app.post('/api/leaves', async (req, res) => {
 
 app.put('/api/leaves/:id', async (req, res) => {
     // Check permission logic
-    if (!req.user.permissions.approve_leave && !req.user.permissions.full_system_control && req.body.status !== 'Pending') {
+    if (req.user.role !== 'Admin' && !req.user.permissions?.approve_leave && !req.user.permissions?.full_system_control && req.body.status !== 'Pending') {
         const existing = await Leave.findOne({ id: req.params.id });
         if (existing && existing.status !== req.body.status) {
             return res.status(403).json({ error: 'Permission required to approve/reject leaves' });
