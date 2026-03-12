@@ -19,7 +19,7 @@ export default function Users() {
     const [filterRole, setFilterRole] = useState('All');
 
     const rp = rolePermissions?.find(r => r.role === user?.role)?.permissions || {};
-    const canManageUsers = rp.manage_users || rp.full_system_control;
+    const canManageUsers = user?.role === 'Admin' || rp.manage_users || rp.full_system_control;
 
     if (!canManageUsers) {
         return (

@@ -26,7 +26,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
     const { data } = useStore();
 
     const rp = data?.rolePermissions?.find(r => r.role === user?.role)?.permissions || {};
-    const isAdmin = rp.full_system_control;
+    const isAdmin = user?.role === 'Admin' || rp.full_system_control;
 
     const visibleNavItems = navItems.filter(item => {
         if (item.label === 'Users') return rp.manage_users || isAdmin;
