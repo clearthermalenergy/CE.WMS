@@ -205,27 +205,50 @@ app.get('/api/data', async (req, res) => {
 
         if (userRole === 'Admin' || perms.full_system_control) {
             // Admin sees everything, no filters needed
-        } else if (perms.manage_team_tasks) {
-            // Manager level view
-            const deptEmps = await Employee.find({ department: emp.department });
-            const deptEmpIds = deptEmps.map(e => e.id);
-            const directReports = await Employee.find({ manager: userId });
-            const directReportIds = directReports.map(e => e.id);
-            if (!deptEmpIds.includes(userId)) deptEmpIds.push(userId);
-            if (!directReportIds.includes(userId)) directReportIds.push(userId);
-
-            tasksQuery = { $or: [{ assignedTo: { $in: deptEmpIds } }, { createdBy: { $in: deptEmpIds } }] };
-            leadsQuery = perms.view_all_leads ? {} : { assignedTo: { $in: deptEmpIds } };
-            leavesQuery = { employeeId: { $in: directReportIds } };
-            leaveBalancesQuery = { empId: { $in: directReportIds } };
         } else {
-            // Base employee view
+            // Strict personal view by default
             employeesQuery = { id: userId };
             tasksQuery = { $or: [{ assignedTo: userId }, { createdBy: userId }] };
             leadsQuery = { assignedTo: userId };
             leavesQuery = { employeeId: userId };
             leaveBalancesQuery = { empId: userId };
             activitiesQuery = { user: userId };
+
+            // Orthogonal permissions overrides
+            if (perms.manage_users) {
+                employeesQuery = {};
+            }
+
+            const deptEmps = await Employee.find({ department: emp.department });
+            const deptEmpIds = deptEmps.map(e => e.id);
+            if (!deptEmpIds.includes(userId)) deptEmpIds.push(userId);
+
+            const directReports = await Employee.find({ manager: userId });
+            const directReportIds = directReports.map(e => e.id);
+            if (!directReportIds.includes(userId)) directReportIds.push(userId);
+
+            if (perms.manage_team_tasks) {
+                tasksQuery = { $or: [{ assignedTo: { $in: deptEmpIds } }, { createdBy: { $in: deptEmpIds } }] };
+            }
+
+            if (perms.view_all_leads) {
+                leadsQuery = {};
+            } else if (perms.manage_assigned_leads) {
+                leadsQuery = { assignedTo: { $in: deptEmpIds } };
+            }
+
+            if (perms.approve_leave) {
+                leavesQuery = {}; 
+                leaveBalancesQuery = {};
+            } else if (directReportIds.length > 1) { 
+                // Sees team returns without global approval
+                leavesQuery = { employeeId: { $in: directReportIds } };
+                leaveBalancesQuery = { empId: { $in: directReportIds } };
+            }
+
+            if (perms.manage_users || perms.manage_team_tasks || perms.approve_leave) {
+                activitiesQuery = {}; // Elevate activity exposure
+            }
         }
 
         const [employees, tasks, leads, leaves, leaveBalancesArr, activities, notifications, rolePermissions] = await Promise.all([
