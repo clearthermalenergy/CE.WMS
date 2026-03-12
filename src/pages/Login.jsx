@@ -45,9 +45,7 @@ export default function Login() {
                 <div className="login-brand">
                     <div className="login-brand-content">
                         <div className="login-logo">
-                            <div className="login-logo-icon">
-                                <Zap size={32} />
-                            </div>
+                            <img src="/logo.png" alt="Clear Energy Logo" className="login-logo-img" />
                             <div>
                                 <h1>Clear Energy</h1>
                                 <p>Work Management System</p>
