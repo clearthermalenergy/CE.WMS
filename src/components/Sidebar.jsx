@@ -39,7 +39,7 @@ export default function Sidebar({ mobileOpen, onClose }) {
             <div className="sidebar-header">
                 <div className="sidebar-brand">
                     <div className="brand-icon">
-                        <Zap size={20} />
+                        <img src="/logo.png" alt="Clear Energy Logo" className="sidebar-logo-img" />
                     </div>
                     {!collapsed && (
                         <div className="brand-text">
