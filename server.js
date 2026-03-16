@@ -58,14 +58,16 @@ import { runSeed } from './seed.js';
 })();
 
 // Configure CORS for production security
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',')
-    : [
-        'http://localhost:5173', // Vite dev
-        'http://localhost:3000', // Alt frontend
-        'http://localhost',      // Capacitor local
-        'capacitor://localhost'  // iOS Capacitor
-    ];
+let allowedOrigins = [
+    'http://localhost:5173', // Vite dev
+    'http://localhost:3000', // Alt frontend
+    'http://localhost',      // Capacitor local
+    'capacitor://localhost'  // iOS Capacitor
+];
+
+if (process.env.ALLOWED_ORIGINS) {
+    allowedOrigins = allowedOrigins.concat(process.env.ALLOWED_ORIGINS.split(','));
+}
 
 app.use(cors({
     origin: function (origin, callback) {
@@ -142,7 +144,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
             maxAge: 24 * 60 * 60 * 1000 // 24 hours
         });
 
-        res.json({ user: sanitizeEmployee(employee) });
+        res.json({ token, user: sanitizeEmployee(employee) });
     } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }

@@ -31,9 +31,13 @@ export function AuthProvider({ children }) {
 
     const login = useCallback(async (email, password) => {
         const data = await api.loginUser(email, password);
-        sessionStorage.setItem('ce_wms_token', data.token);
-        api.setAuthToken(data.token);
-        setToken(data.token);
+        // `data.token` is returned for mobile (Capacitor WebView) where cross-origin
+        // httpOnly cookies are blocked. The web version relies on the cookie automatically.
+        if (data.token) {
+            sessionStorage.setItem('ce_wms_token', data.token);
+            api.setAuthToken(data.token);
+            setToken(data.token);
+        }
         setUser(data.user);
         return data;
     }, []);
