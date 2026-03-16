@@ -29,6 +29,8 @@ export default function Leads() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStage, setFilterStage] = useState('All');
     const [filterSource, setFilterSource] = useState('All');
+    const [currentPage, setCurrentPage] = useState(1);
+    const rowsPerPage = 10;
 
     const filteredLeads = leads.filter(l => {
         if (searchTerm && !l.companyName.toLowerCase().includes(searchTerm.toLowerCase()) && !l.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())) return false;
@@ -36,6 +38,9 @@ export default function Leads() {
         if (filterSource !== 'All' && l.leadSource !== filterSource) return false;
         return true;
     });
+
+    const totalPages = Math.ceil(filteredLeads.length / rowsPerPage);
+    const paginatedLeads = view === 'table' ? filteredLeads.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage) : filteredLeads;
 
     const formatCurrency = (val) => {
         if (val >= 10000000) return `₹${(val / 10000000).toFixed(1)}Cr`;
@@ -113,7 +118,7 @@ export default function Leads() {
                     <option value="All">All Stages</option>
                     {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
-                <select className="filter-select" value={filterSource} onChange={e => setFilterSource(e.target.value)}>
+                <select className="filter-select" value={filterSource} onChange={e => { setFilterSource(e.target.value); setCurrentPage(1); }}>
                     <option value="All">All Sources</option>
                     {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
@@ -179,7 +184,7 @@ export default function Leads() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredLeads.map(lead => (
+                            {paginatedLeads.map(lead => (
                                 <tr key={lead.id}>
                                     <td>
                                         <div className="lead-company-cell">
@@ -217,6 +222,14 @@ export default function Leads() {
                             ))}
                         </tbody>
                     </table>
+                    
+                    {totalPages > 1 && (
+                        <div className="pagination-controls" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '15px' }}>
+                            <button className="btn btn-secondary btn-sm" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>Previous</button>
+                            <span style={{ fontSize: '0.875rem', alignSelf: 'center', color: 'var(--text-secondary)' }}>Page {currentPage} of {totalPages}</span>
+                            <button className="btn btn-secondary btn-sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>Next</button>
+                        </div>
+                    )}
                 </div>
             )}
 

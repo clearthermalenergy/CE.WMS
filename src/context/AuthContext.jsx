@@ -38,7 +38,12 @@ export function AuthProvider({ children }) {
         return data;
     }, []);
 
-    const logout = useCallback(() => {
+    const logout = useCallback(async () => {
+        try {
+            await api.logoutUser();
+        } catch (e) {
+            console.error('Logout error', e);
+        }
         sessionStorage.removeItem('ce_wms_token');
         localStorage.removeItem('ce_wms_token'); // Clear legacy token if someone still has it cached
         api.setAuthToken(null);

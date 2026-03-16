@@ -26,6 +26,8 @@ export default function Leaves() {
     const [filterStatus, setFilterStatus] = useState('All');
     const [filterType, setFilterType] = useState('All');
     const [selectedEmployee, setSelectedEmployee] = useState('All');
+    const [currentPage, setCurrentPage] = useState(1);
+    const rowsPerPage = 10;
 
     const filteredLeaves = leaves.filter(l => {
         if (filterStatus !== 'All' && l.status !== filterStatus) return false;
@@ -33,6 +35,9 @@ export default function Leaves() {
         if (selectedEmployee !== 'All' && l.employeeId !== selectedEmployee) return false;
         return true;
     }).sort((a, b) => new Date(b.appliedOn) - new Date(a.appliedOn));
+
+    const totalPages = Math.ceil(filteredLeaves.length / rowsPerPage);
+    const paginatedLeaves = tab === 'requests' ? filteredLeaves.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage) : filteredLeaves;
 
     const pendingCount = leaves.filter(l => l.status === 'Pending').length;
     const approvedCount = leaves.filter(l => l.status === 'Approved').length;
@@ -126,14 +131,14 @@ export default function Leaves() {
                             <option value="Approved">Approved</option>
                             <option value="Rejected">Rejected</option>
                         </select>
-                        <select className="filter-select" value={filterType} onChange={e => setFilterType(e.target.value)}>
+                        <select className="filter-select" value={filterType} onChange={e => { setFilterType(e.target.value); setCurrentPage(1); }}>
                             <option value="All">All Types</option>
                             {LEAVE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                     </div>
 
                     <div className="leave-requests-list">
-                        {filteredLeaves.map(leave => {
+                        {paginatedLeaves.map(leave => {
                             const LeaveIcon = LEAVE_ICONS[leave.leaveType] || Calendar;
                             return (
                                 <div key={leave.id} className={`leave-request-card glass-card ${leave.status.toLowerCase()}`}>
@@ -183,6 +188,13 @@ export default function Leaves() {
                             );
                         })}
                     </div>
+                    {totalPages > 1 && (
+                        <div className="pagination-controls" style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '20px' }}>
+                            <button className="btn btn-secondary btn-sm" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>Previous</button>
+                            <span style={{ fontSize: '0.875rem', alignSelf: 'center', color: 'var(--text-secondary)' }}>Page {currentPage} of {totalPages}</span>
+                            <button className="btn btn-secondary btn-sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>Next</button>
+                        </div>
+                    )}
                 </>
             )}
 

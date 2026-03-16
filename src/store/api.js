@@ -53,6 +53,7 @@ async function request(url, options = {}) {
 // Auth
 // ============================================
 export const loginUser = (email, password) => request('/auth/login', { method: 'POST', body: { email, password } });
+export const logoutUser = () => request('/auth/logout', { method: 'POST' });
 export const fetchMe = () => request('/auth/me');
 
 // ============================================

@@ -4,6 +4,8 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
+import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 
 import Employee from './models/Employee.js';
 import Task from './models/Task.js';
@@ -66,6 +68,7 @@ app.use(cors({
     credentials: true,
 }));
 app.use(express.json());
+app.use(cookieParser());
 
 // ============================================
 // ID Generator
@@ -77,6 +80,15 @@ function generateId(prefix = '') {
 // ============================================
 // AUTHENTICATION
 // ============================================
+
+const loginLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000, // 5 minutes
+    max: 10, // 10 requests per window
+    message: { error: 'Too many login attempts from this IP, please try again after 5 minutes.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 function sanitizeEmployee(emp) {
     if (!emp) return null;
     const safe = emp.toObject ? emp.toObject() : emp;
@@ -84,7 +96,7 @@ function sanitizeEmployee(emp) {
     return safe;
 }
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
@@ -111,7 +123,14 @@ app.post('/api/auth/login', async (req, res) => {
             timestamp: new Date().toISOString()
         });
 
-        res.json({ token, user: sanitizeEmployee(employee) });
+        res.cookie('ce_wms_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        });
+
+        res.json({ user: sanitizeEmployee(employee) });
     } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }
@@ -119,10 +138,10 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.get('/api/auth/me', async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'No token' });
+        const token = req.cookies.ce_wms_token || (req.headers.authorization ? req.headers.authorization.split(' ')[1] : null);
+        if (!token) return res.status(401).json({ error: 'No token' });
 
-        const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET);
         const employee = await Employee.findOne({ id: decoded.id });
         if (!employee) return res.status(404).json({ error: 'User not found' });
 
@@ -132,15 +151,24 @@ app.get('/api/auth/me', async (req, res) => {
     }
 });
 
+app.post('/api/auth/logout', (req, res) => {
+    res.clearCookie('ce_wms_token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+    });
+    res.json({ success: true, message: 'Logged out successfully' });
+});
+
 // ============================================
 // AUTH MIDDLEWARE
 // ============================================
 async function authMiddleware(req, res, next) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'Auth required' });
+    const token = req.cookies.ce_wms_token || (req.headers.authorization ? req.headers.authorization.split(' ')[1] : null);
+    if (!token) return res.status(401).json({ error: 'Auth required' });
 
     try {
-        const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET);
         req.user = decoded;
         
         // Load dynamic permissions for this role and attach to req.user
