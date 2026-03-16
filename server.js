@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 
 import Employee from './models/Employee.js';
 import Task from './models/Task.js';
@@ -17,8 +18,19 @@ import Notification from './models/Notification.js';
 import RolePermission from './models/RolePermission.js';
 
 const app = express();
+// CONF-01: Add security headers to all responses
+app.use(helmet({ contentSecurityPolicy: false }));
 const PORT = process.env.PORT || 3001;
-const JWT_SECRET = process.env.JWT_SECRET || 'ce-wms-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    // In development, use a fallback but warn loudly. In production, crash fast.
+    if (process.env.NODE_ENV === 'production') {
+        console.error('FATAL: JWT_SECRET environment variable is not set. Refusing to start.');
+        process.exit(1);
+    }
+    console.warn('WARNING: JWT_SECRET not set. Using insecure development fallback. DO NOT use in production.');
+}
+const JWT_SECRET_FINAL = JWT_SECRET || 'ce-wms-dev-only-insecure-fallback';
 const JWT_EXPIRY = '24h';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/ce-wms';
 
@@ -111,7 +123,7 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
             return res.status(403).json({ error: 'Account is inactive. Contact admin.' });
         }
 
-        const token = jwt.sign({ id: employee.id, email: employee.email, role: employee.role }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+        const token = jwt.sign({ id: employee.id, email: employee.email, role: employee.role }, JWT_SECRET_FINAL, { expiresIn: JWT_EXPIRY });
 
         // Log login activity
         await Activity.create({
@@ -141,7 +153,7 @@ app.get('/api/auth/me', async (req, res) => {
         const token = req.cookies.ce_wms_token || (req.headers.authorization ? req.headers.authorization.split(' ')[1] : null);
         if (!token) return res.status(401).json({ error: 'No token' });
 
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET_FINAL);
         const employee = await Employee.findOne({ id: decoded.id });
         if (!employee) return res.status(404).json({ error: 'User not found' });
 
@@ -168,7 +180,7 @@ async function authMiddleware(req, res, next) {
     if (!token) return res.status(401).json({ error: 'Auth required' });
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET_FINAL);
         req.user = decoded;
         
         // Load dynamic permissions for this role and attach to req.user
@@ -201,17 +213,20 @@ function requireManageLeads(req, res, next) {
     next();
 }
 
-// Temporary public seed endpoint since auth depends on seeded users
-app.get('/api/seed-db', async (req, res) => {
-    try {
-        await runSeed();
-        res.send('<h2>Database seeded perfectly! You can now close this tab, go back to your app, and log in.</h2>');
-    } catch (err) {
-        res.status(500).send('Failed to seed database: ' + err.message);
-    }
-});
+// BAC-01: Seed endpoint moved AFTER authMiddleware and protected by requireAdmin
+// This prevents anonymous users from wiping or re-seeding the production database
 
 app.use('/api', authMiddleware);
+
+// BAC-01 PATCH: Seed DB is now protected — requires Admin token
+app.get('/api/seed-db', requireAdmin, async (req, res) => {
+    try {
+        await runSeed();
+        res.json({ success: true, message: 'Database seeded successfully.' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to seed database: ' + err.message });
+    }
+});
 
 // ============================================
 // FULL DATA ENDPOINT (for initial load)
@@ -306,8 +321,8 @@ app.get('/api/data', async (req, res) => {
     }
 });
 
-// Data reset (just re-seed by invoking seed script logic, or return a message saying to run seed.js)
-app.post('/api/data/reset', async (req, res) => {
+// BAC-03 PATCH: Only Admins can reset/re-seed the database
+app.post('/api/data/reset', requireAdmin, async (req, res) => {
     try {
         await runSeed();
         res.json({ success: true, message: 'Database seeded successfully on live server!' });
@@ -377,9 +392,26 @@ app.post('/api/tasks', async (req, res) => {
     res.status(201).json(newTask);
 });
 
+// BAC-02 PATCH: Verify the requester owns or has permission to modify this task
 app.put('/api/tasks/:id', async (req, res) => {
-    const task = await Task.findOneAndUpdate({ id: req.params.id }, req.body, { new: true });
-    res.json(task);
+    try {
+        const task = await Task.findOne({ id: req.params.id });
+        if (!task) return res.status(404).json({ error: 'Task not found' });
+
+        const perms = req.user.permissions || {};
+        const isAdmin = req.user.role === 'Admin' || perms.full_system_control;
+        const isOwner = task.assignedTo === req.user.id || task.createdBy === req.user.id;
+        const canManageTeam = !!perms.manage_team_tasks;
+
+        if (!isAdmin && !isOwner && !canManageTeam) {
+            return res.status(403).json({ error: 'You do not have permission to update this task' });
+        }
+
+        const updated = await Task.findOneAndUpdate({ id: req.params.id }, req.body, { new: true });
+        res.json(updated);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
 });
 
 app.delete('/api/tasks/:id', requireManageTeamTasks, async (req, res) => {
