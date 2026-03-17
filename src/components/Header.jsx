@@ -2,7 +2,7 @@ import { Bell, Search, Menu, LogOut } from 'lucide-react';
 import { useNotifications } from '../hooks/useStore';
 import { useStore } from '../hooks/useStore';
 import { useAuth } from '../context/AuthContext';
-import { getInitials, getAvatarColor } from '../store/data';
+import { getInitials, getAvatarColor, formatDate } from '../store/data';
 import { useState, useRef, useEffect } from 'react';
 import './Header.css';
 
@@ -13,7 +13,6 @@ export default function Header({ onMenuClick }) {
     const [showNotifs, setShowNotifs] = useState(false);
     const notifRef = useRef(null);
 
-    // Use auth user directly — it comes from the JWT-verified session
     const currentUser = user || data.employees.find(e => e.id === data.currentUser);
 
     useEffect(() => {
@@ -72,23 +71,120 @@ export default function Header({ onMenuClick }) {
                     )}
                 </div>
 
-                {currentUser && (
-                    <div className="header-user">
-                        <div className="avatar" style={{ background: getAvatarColor(currentUser.name), color: '#fff' }}>
-                            {getInitials(currentUser.name)}
-                        </div>
-                        <div className="header-user-info">
-                            <span className="header-user-name">{currentUser.name}</span>
-                            <span className="header-user-role">{currentUser.role}</span>
-                        </div>
-                    </div>
-                )}
+                {currentUser && <UserProfileButton currentUser={currentUser} />}
 
                 <button className="logout-btn" onClick={logout} title="Sign out" id="btn-logout">
                     <LogOut size={18} />
                 </button>
             </div>
         </header>
+    );
+}
+
+function UserProfileButton({ currentUser }) {
+    const [showProfile, setShowProfile] = useState(false);
+    const profileRef = useRef(null);
+
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (profileRef.current && !profileRef.current.contains(e.target)) {
+                setShowProfile(false);
+            }
+        }
+        function handleEsc(e) {
+            if (e.key === 'Escape') setShowProfile(false);
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEsc);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleEsc);
+        };
+    }, []);
+
+    const roleColors = {
+        Admin: '#f59e0b',
+        Manager: '#6366f1',
+        Employee: '#3b82f6',
+    };
+
+    return (
+        <div className="header-user-wrapper" ref={profileRef}>
+            <button
+                className="header-user"
+                id="btn-header-profile"
+                onClick={() => setShowProfile(v => !v)}
+                title="View your profile"
+            >
+                <div className="avatar" style={{ background: getAvatarColor(currentUser.name), color: '#fff' }}>
+                    {getInitials(currentUser.name)}
+                </div>
+                <div className="header-user-info">
+                    <span className="header-user-name">{currentUser.name}</span>
+                    <span className="header-user-role">{currentUser.role}</span>
+                </div>
+            </button>
+
+            {showProfile && (
+                <div className="profile-panel" role="dialog" aria-label="Your profile">
+                    <div
+                        className="profile-panel-header"
+                        style={{
+                            background: `linear-gradient(135deg, ${getAvatarColor(currentUser.name)}44 0%, ${getAvatarColor(currentUser.name)}11 100%)`,
+                        }}
+                    >
+                        <div
+                            className="profile-avatar-lg"
+                            style={{ background: getAvatarColor(currentUser.name), color: '#fff' }}
+                        >
+                            {getInitials(currentUser.name)}
+                        </div>
+                        <div className="profile-panel-name-block">
+                            <h3 className="profile-panel-name">{currentUser.name}</h3>
+                            <span className="profile-id-badge">{currentUser.id}</span>
+                        </div>
+                        <span
+                            className="profile-role-badge"
+                            style={{
+                                background: `${roleColors[currentUser.role]}22`,
+                                color: roleColors[currentUser.role],
+                                border: `1px solid ${roleColors[currentUser.role]}55`,
+                            }}
+                        >
+                            {currentUser.role}
+                        </span>
+                    </div>
+
+                    <div className="profile-panel-body">
+                        <ProfileRow icon="✉️" label="Email" value={currentUser.email || '—'} />
+                        <ProfileRow icon="📞" label="Phone" value={currentUser.phone || '—'} />
+                        <ProfileRow icon="🏢" label="Department" value={currentUser.department || '—'} />
+                        <ProfileRow
+                            icon="📅"
+                            label="Joined"
+                            value={currentUser.joinDate ? formatDate(currentUser.joinDate) : '—'}
+                        />
+                        <ProfileRow
+                            icon={currentUser.status === 'Active' ? '🟢' : '🔴'}
+                            label="Status"
+                            value={currentUser.status || '—'}
+                        />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function ProfileRow({ icon, label, value }) {
+    return (
+        <div className="profile-row">
+            <span className="profile-row-icon">{icon}</span>
+            <div className="profile-row-content">
+                <span className="profile-row-label">{label}</span>
+                <span className="profile-row-value">{value}</span>
+            </div>
+        </div>
     );
 }
 
