@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../hooks/useStore';
 import { useAuth } from '../context/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import { getInitials, getAvatarColor, formatDate } from '../store/data';
 import { Plus, Search, Check, X, Calendar, Clock, Briefcase, Heart, AlertTriangle, Home, Filter } from 'lucide-react';
 import './Leaves.css';
@@ -28,6 +29,17 @@ export default function Leaves() {
     const [selectedEmployee, setSelectedEmployee] = useState('All');
     const [currentPage, setCurrentPage] = useState(1);
     const rowsPerPage = 10;
+    const [searchParams] = useSearchParams();
+
+    // Auto-apply filter from URL query param
+    useEffect(() => {
+        const f = searchParams.get('filter');
+        if (!f) return;
+        setTab('requests');
+        if (f === 'Pending') setFilterStatus('Pending');
+        else if (f === 'Approved') setFilterStatus('Approved');
+        else if (f === 'active') setFilterStatus('Approved'); // On Leave Today = Approved
+    }, [searchParams]);
 
     const filteredLeaves = leaves.filter(l => {
         if (filterStatus !== 'All' && l.status !== filterStatus) return false;

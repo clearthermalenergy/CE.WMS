@@ -54,6 +54,30 @@
     color: var(--text-secondary);
 }
 
+/* Clickable Report Stats */
+.report-stat-link {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    border: 1px solid transparent;
+    transition: all var(--transition-fast);
+}
+
+.report-stat-link:hover {
+    background: var(--bg-glass);
+    border-color: var(--border-color-light);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    text-decoration: none;
+    color: inherit;
+}
+
+.report-stat-link:hover .report-stat-value {
+    text-shadow: 0 0 12px currentColor;
+}
+
 @media (max-width: 768px) {
     .reports-grid {
         grid-template-columns: 1fr;
@@ -62,4 +86,4 @@
     .report-stats {
         gap: 1rem;
     }
-}
+}

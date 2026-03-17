@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
+import { Link } from 'react-router-dom';
 import './Dashboard.css';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
@@ -15,7 +16,6 @@ export default function Dashboard() {
     const { data, store } = useStore();
     const { tasks, leads, leaves, employees, activities } = data;
 
-    // Task stats
     const taskStats = {
         pending: tasks.filter(t => t.status === 'To-Do').length,
         inProgress: tasks.filter(t => t.status === 'In Progress').length,
@@ -23,7 +23,6 @@ export default function Dashboard() {
         dueToday: tasks.filter(t => isToday(t.dueDate)).length,
     };
 
-    // Lead stats
     const leadStats = {
         total: leads.length,
         converted: leads.filter(l => l.status === 'Won').length,
@@ -31,7 +30,6 @@ export default function Dashboard() {
         closed: leads.filter(l => l.status === 'Won').reduce((s, l) => s + l.dealValue, 0),
     };
 
-    // Leave stats
     const leaveStats = {
         onLeaveToday: leaves.filter(l => l.status === 'Approved' && new Date(l.startDate) <= new Date() && new Date(l.endDate) >= new Date()).length,
         pending: leaves.filter(l => l.status === 'Pending').length,
@@ -40,7 +38,6 @@ export default function Dashboard() {
 
     const conversionRate = leads.length > 0 ? Math.round((leadStats.converted / leads.length) * 100) : 0;
 
-    // Charts data
     const taskChartData = {
         labels: ['To-Do', 'This Week', 'In Progress', 'Done'],
         datasets: [{
@@ -112,71 +109,79 @@ export default function Dashboard() {
 
             {/* Task Stats */}
             <div className="stats-grid">
-                <div className="stat-card indigo">
+                <Link to="/tasks?filter=To-Do" className="stat-card indigo stat-card-link">
                     <div className="stat-card-header">
                         <div className="stat-card-icon indigo"><Clock size={20} /></div>
                         <div className="stat-card-change up"><ArrowUpRight size={14} /> 12%</div>
                     </div>
                     <div className="stat-card-value">{taskStats.pending}</div>
                     <div className="stat-card-label">Tasks Pending</div>
-                </div>
-                <div className="stat-card blue">
+                    <div className="stat-card-link-hint">View To-Do →</div>
+                </Link>
+                <Link to="/tasks?filter=In Progress" className="stat-card blue stat-card-link">
                     <div className="stat-card-header">
                         <div className="stat-card-icon blue"><AlertTriangle size={20} /></div>
                         <div className="stat-card-change up"><ArrowUpRight size={14} /> 8%</div>
                     </div>
                     <div className="stat-card-value">{taskStats.inProgress}</div>
                     <div className="stat-card-label">In Progress</div>
-                </div>
-                <div className="stat-card green">
+                    <div className="stat-card-link-hint">View In Progress →</div>
+                </Link>
+                <Link to="/tasks?filter=Done" className="stat-card green stat-card-link">
                     <div className="stat-card-header">
                         <div className="stat-card-icon green"><CheckCircle size={20} /></div>
                         <div className="stat-card-change up"><ArrowUpRight size={14} /> 24%</div>
                     </div>
                     <div className="stat-card-value">{taskStats.completed}</div>
                     <div className="stat-card-label">Tasks Completed</div>
-                </div>
-                <div className="stat-card amber">
+                    <div className="stat-card-link-hint">View Done →</div>
+                </Link>
+                <Link to="/tasks?filter=due-today" className="stat-card amber stat-card-link">
                     <div className="stat-card-header">
                         <div className="stat-card-icon amber"><CalendarDays size={20} /></div>
                     </div>
                     <div className="stat-card-value">{taskStats.dueToday}</div>
                     <div className="stat-card-label">Due Today</div>
-                </div>
+                    <div className="stat-card-link-hint">View Due Today →</div>
+                </Link>
             </div>
 
             {/* Sales Stats */}
             <div className="stats-grid">
-                <div className="stat-card green">
+                <Link to="/leads?filter=all" className="stat-card green stat-card-link">
                     <div className="stat-card-header">
                         <div className="stat-card-icon green"><Target size={20} /></div>
                         <div className="stat-card-change up"><ArrowUpRight size={14} /> 15%</div>
                     </div>
                     <div className="stat-card-value">{leadStats.total}</div>
                     <div className="stat-card-label">Total Leads</div>
-                </div>
-                <div className="stat-card indigo">
+                    <div className="stat-card-link-hint">View All Leads →</div>
+                </Link>
+                <Link to="/leads?filter=Won" className="stat-card indigo stat-card-link">
                     <div className="stat-card-header">
                         <div className="stat-card-icon indigo"><TrendingUp size={20} /></div>
                     </div>
                     <div className="stat-card-value">{conversionRate}%</div>
                     <div className="stat-card-label">Conversion Rate</div>
-                </div>
-                <div className="stat-card blue">
+                    <div className="stat-card-link-hint">View Won Leads →</div>
+                </Link>
+                <Link to="/leads?filter=pipeline" className="stat-card blue stat-card-link">
                     <div className="stat-card-header">
                         <div className="stat-card-icon blue"><DollarSign size={20} /></div>
                         <div className="stat-card-change up"><ArrowUpRight size={14} /> 32%</div>
                     </div>
                     <div className="stat-card-value">{formatCurrency(leadStats.pipeline)}</div>
                     <div className="stat-card-label">Pipeline Value</div>
-                </div>
-                <div className="stat-card green">
+                    <div className="stat-card-link-hint">View Pipeline →</div>
+                </Link>
+                <Link to="/leads?filter=Won" className="stat-card green stat-card-link">
                     <div className="stat-card-header">
                         <div className="stat-card-icon green"><BarChart3 size={20} /></div>
                     </div>
                     <div className="stat-card-value">{formatCurrency(leadStats.closed)}</div>
                     <div className="stat-card-label">Deals Closed</div>
-                </div>
+                    <div className="stat-card-link-hint">View Won Deals →</div>
+                </Link>
             </div>
 
             {/* Charts & Activity */}
@@ -230,18 +235,18 @@ export default function Dashboard() {
                         <h3>Leave Overview</h3>
                     </div>
                     <div className="leave-stats-mini">
-                        <div className="leave-stat-item">
+                        <Link to="/leaves?filter=active" className="leave-stat-item leave-stat-link">
                             <div className="leave-stat-value text-warning">{leaveStats.onLeaveToday}</div>
                             <div className="leave-stat-label">On Leave Today</div>
-                        </div>
-                        <div className="leave-stat-item">
+                        </Link>
+                        <Link to="/leaves?filter=Pending" className="leave-stat-item leave-stat-link">
                             <div className="leave-stat-value text-amber">{leaveStats.pending}</div>
                             <div className="leave-stat-label">Pending Requests</div>
-                        </div>
-                        <div className="leave-stat-item">
+                        </Link>
+                        <Link to="/leaves?filter=Approved" className="leave-stat-item leave-stat-link">
                             <div className="leave-stat-value text-green">{leaveStats.approved}</div>
                             <div className="leave-stat-label">Approved</div>
-                        </div>
+                        </Link>
                     </div>
                     <div className="leave-list-mini">
                         {leaves.filter(l => l.status === 'Pending').slice(0, 3).map(l => (
@@ -262,7 +267,9 @@ export default function Dashboard() {
                 <div className="glass-card">
                     <div className="card-header">
                         <h3>Team Members</h3>
-                        <span className="badge badge-success">{employees.filter(e => e.status === 'Active').length} Active</span>
+                        <Link to="/users" className="badge badge-success" style={{ textDecoration: 'none' }}>
+                            {employees.filter(e => e.status === 'Active').length} Active →
+                        </Link>
                     </div>
                     <div className="team-list">
                         {employees.slice(0, 6).map(emp => (

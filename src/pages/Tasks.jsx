@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../hooks/useStore';
+import { useSearchParams } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { getInitials, getAvatarColor, formatDate, isOverdue } from '../store/data';
+import { getInitials, getAvatarColor, formatDate, isOverdue, isToday } from '../store/data';
 import {
     Plus, MoreVertical, Calendar, User, MessageSquare, Paperclip,
     CheckSquare, Edit2, Trash2, X, ChevronDown, ChevronUp, Search, Filter
@@ -26,11 +27,32 @@ export default function Tasks() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterPriority, setFilterPriority] = useState('All');
     const [filterAssignee, setFilterAssignee] = useState('All');
+    const [highlightColumn, setHighlightColumn] = useState(null);
+    const [searchParams] = useSearchParams();
+
+    // Auto-apply filter from URL query param (e.g. ?filter=To-Do)
+    useEffect(() => {
+        const f = searchParams.get('filter');
+        if (!f) return;
+        if (f === 'due-today') {
+            // No column filter — just search today's due tasks visually
+            setHighlightColumn('due-today');
+        } else {
+            setHighlightColumn(f);
+        }
+        // Scroll to that column after render
+        setTimeout(() => {
+            const el = document.getElementById(`col-${f}`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 200);
+    }, [searchParams]);
 
     const filteredTasks = tasks.filter(t => {
         if (searchTerm && !t.title.toLowerCase().includes(searchTerm.toLowerCase())) return false;
         if (filterPriority !== 'All' && t.priority !== filterPriority) return false;
         if (filterAssignee !== 'All' && t.assignedTo !== filterAssignee) return false;
+        // 'due-today' highlight: only show tasks due today across all columns
+        if (highlightColumn === 'due-today' && !isToday(t.dueDate)) return false;
         return true;
     });
 
@@ -102,7 +124,8 @@ export default function Tasks() {
                         <Droppable key={col.id} droppableId={col.id}>
                             {(provided, snapshot) => (
                                 <div
-                                    className={`kanban-column ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
+                                    id={`col-${col.id}`}
+                                    className={`kanban-column ${snapshot.isDraggingOver ? 'dragging-over' : ''} ${highlightColumn === col.id ? 'column-highlighted' : ''}`}
                                     ref={provided.innerRef}
                                     {...provided.droppableProps}
                                 >

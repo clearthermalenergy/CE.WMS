@@ -2,6 +2,7 @@ import { useStore } from '../hooks/useStore';
 import { Doughnut, Bar, Line } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement, Filler } from 'chart.js';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Download, FileText, BarChart3, Target, CalendarDays } from 'lucide-react';
 import './Reports.css';
 
@@ -168,11 +169,26 @@ export default function Reports() {
                     <div className="report-card glass-card full-width">
                         <h3>Task Summary</h3>
                         <div className="report-stats">
-                            <div className="report-stat"><span className="report-stat-value">{tasks.length}</span><span>Total Tasks</span></div>
-                            <div className="report-stat"><span className="report-stat-value text-green">{tasks.filter(t => t.status === 'Done').length}</span><span>Completed</span></div>
-                            <div className="report-stat"><span className="report-stat-value text-amber">{tasks.filter(t => t.status === 'In Progress').length}</span><span>In Progress</span></div>
-                            <div className="report-stat"><span className="report-stat-value text-indigo">{tasks.filter(t => t.status === 'To-Do').length}</span><span>To-Do</span></div>
-                            <div className="report-stat"><span className="report-stat-value" style={{ color: '#ef4444' }}>{tasks.filter(t => new Date(t.dueDate) < new Date() && t.status !== 'Done').length}</span><span>Overdue</span></div>
+                            <Link to="/tasks" className="report-stat report-stat-link">
+                                <span className="report-stat-value">{tasks.length}</span>
+                                <span>Total Tasks</span>
+                            </Link>
+                            <Link to="/tasks?filter=Done" className="report-stat report-stat-link">
+                                <span className="report-stat-value text-green">{tasks.filter(t => t.status === 'Done').length}</span>
+                                <span>Completed</span>
+                            </Link>
+                            <Link to="/tasks?filter=In Progress" className="report-stat report-stat-link">
+                                <span className="report-stat-value text-amber">{tasks.filter(t => t.status === 'In Progress').length}</span>
+                                <span>In Progress</span>
+                            </Link>
+                            <Link to="/tasks?filter=To-Do" className="report-stat report-stat-link">
+                                <span className="report-stat-value text-indigo">{tasks.filter(t => t.status === 'To-Do').length}</span>
+                                <span>To-Do</span>
+                            </Link>
+                            <Link to="/tasks?filter=To-Do" className="report-stat report-stat-link">
+                                <span className="report-stat-value" style={{ color: '#ef4444' }}>{tasks.filter(t => new Date(t.dueDate) < new Date() && t.status !== 'Done').length}</span>
+                                <span>Overdue</span>
+                            </Link>
                         </div>
                     </div>
                 </div>

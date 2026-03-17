@@ -228,6 +228,51 @@
     background: var(--text-tertiary);
 }
 
+/* Clickable Stat Cards (hyperlinks) */
+.stat-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    position: relative;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.stat-card-link:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    text-decoration: none;
+    color: inherit;
+}
+
+.stat-card-link-hint {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.35);
+    margin-top: 0.5rem;
+    letter-spacing: 0.3px;
+    transition: color var(--transition-fast);
+}
+
+.stat-card-link:hover .stat-card-link-hint {
+    color: rgba(255,255,255,0.7);
+}
+
+/* Clickable Leave Stats */
+.leave-stat-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    padding: 0.5rem;
+    transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.leave-stat-link:hover {
+    background: var(--bg-glass);
+    transform: translateY(-2px);
+}
+
 /* Responsive */
 @media (max-width: 1200px) {
     .dashboard-grid {

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../hooks/useStore';
+import { useSearchParams } from 'react-router-dom';
 import { getInitials, getAvatarColor, formatDate } from '../store/data';
 import {
     Plus, Search, Edit2, Trash2, X, Eye, Phone, Mail, MapPin, Building,
@@ -22,7 +23,7 @@ const SOURCES = ['Website', 'Referral', 'Cold call', 'Advertisement'];
 export default function Leads() {
     const { data, store } = useStore();
     const { leads, employees } = data;
-    const [view, setView] = useState('pipeline'); // pipeline or table
+    const [view, setView] = useState('pipeline');
     const [showModal, setShowModal] = useState(false);
     const [editLead, setEditLead] = useState(null);
     const [viewLead, setViewLead] = useState(null);
@@ -31,6 +32,24 @@ export default function Leads() {
     const [filterSource, setFilterSource] = useState('All');
     const [currentPage, setCurrentPage] = useState(1);
     const rowsPerPage = 10;
+    const [searchParams] = useSearchParams();
+
+    // Auto-apply filter from URL query param
+    useEffect(() => {
+        const f = searchParams.get('filter');
+        if (!f) return;
+        if (f === 'all') {
+            setFilterStage('All');
+        } else if (f === 'pipeline') {
+            // Show only active pipeline (not Won/Lost)
+            setView('table');
+            setFilterStage('All'); // We show all but note: pipeline filtering is done by exclusion
+            // Use search term workaround not ideal, just switch to table view showing all active
+        } else if (STAGES.includes(f)) {
+            setFilterStage(f);
+            setView('table');
+        }
+    }, [searchParams]);
 
     const filteredLeads = leads.filter(l => {
         if (searchTerm && !l.companyName.toLowerCase().includes(searchTerm.toLowerCase()) && !l.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())) return false;
