@@ -5,7 +5,7 @@ import { getInitials, getAvatarColor, formatDate } from '../store/data';
 import { Plus, Search, Edit2, Trash2, X, Mail, Phone, Building, Calendar, Shield, Lock } from 'lucide-react';
 import './Users.css';
 
-const DEPARTMENTS = ['Sales', 'Engineering', 'Marketing', 'HR', 'Operations', 'Finance'];
+const DEPARTMENTS = ['Sales', 'Engineering', 'Marketing', 'HR', 'Operations', 'Finance', 'Leadership'];
 const ROLES = ['Admin', 'Manager', 'Employee'];
 
 export default function Users() {

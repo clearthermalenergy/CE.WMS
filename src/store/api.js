@@ -2,9 +2,9 @@
 // API Client — Centralized fetch calls
 // ============================================
 
-// Use environment variable for API URL in production (e.g., Capacitor mobile apps).
-// Fallback to '/api' for local Vite proxy
-const BASE = import.meta.env.VITE_API_URL || '/api';
+// Always use the hardcoded live backend URL when built for production (like the Capacitor Android app).
+// Fallback to relative '/api' for local Vite proxy during development.
+const BASE = import.meta.env.PROD ? 'https://grid.clearenergy.ai/api' : '/api';
 
 // Auth token management
 let _authToken = sessionStorage.getItem('ce_wms_token') || null;
