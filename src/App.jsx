@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Tasks from './pages/Tasks';
 import Leads from './pages/Leads';
 import Leaves from './pages/Leaves';
+import Attendance from './pages/Attendance';
 import Activities from './pages/Activities';
 import Reports from './pages/Reports';
 import Users from './pages/Users';
@@ -46,6 +47,7 @@ function AppContent() {
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/leaves" element={<Leaves />} />
+              <Route path="/attendance" element={<Attendance />} />
               <Route path="/activities" element={<Activities />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/users" element={<Users />} />

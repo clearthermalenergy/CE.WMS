@@ -1,0 +1,351 @@
+.attendance-page {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.attendance-date {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.attendance-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+}
+
+@media (min-width: 1024px) {
+    .attendance-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.card {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px var(--border-color), 0 2px 4px -2px var(--border-color);
+}
+
+.card h3 {
+    margin: 0 0 20px 0;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
+    padding-left: 20px;
+}
+
+.status-timeline::before {
+    content: '';
+    position: absolute;
+    left: 28px;
+    top: 10px;
+    bottom: 10px;
+    width: 2px;
+    background: var(--border-color);
+    z-index: 1;
+}
+
+.timeline-tick {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    position: relative;
+    z-index: 2;
+    opacity: 0.6;
+}
+
+.timeline-tick.active {
+    opacity: 1;
+}
+
+.tick-circle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--border-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+.timeline-tick.active .tick-circle {
+    background: var(--primary-color);
+}
+
+.tick-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.time-text {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.pending {
+    font-style: italic;
+}
+
+.daily-summary {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-color);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.summary-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.action-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.action-step {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s ease;
+}
+
+.action-step.completed {
+    border-color: var(--success);
+    background: rgba(34, 197, 94, 0.05); /* very light green tint */
+}
+
+.step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.step-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--surface-hover);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.action-step.completed .step-number {
+    background: var(--success);
+    color: white;
+}
+
+.step-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.location-success {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--success);
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.camera-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+}
+
+.camera-video {
+    width: 100%;
+    max-width: 320px;
+    border-radius: 8px;
+    background: #000;
+    aspect-ratio: 3/4;
+    object-fit: cover;
+}
+
+.photo-preview-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+}
+
+.photo-preview {
+    width: 100%;
+    max-width: 320px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    aspect-ratio: 3/4;
+    object-fit: cover;
+}
+
+.submit-section {
+    margin-top: 16px;
+}
+
+.submit-section .btn {
+    height: 48px;
+    font-size: 1.1rem;
+    justify-content: center;
+}
+
+.submit-section .btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: var(--surface-hover);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+.map-card {
+    grid-column: 1 / -1; 
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+.map-container {
+    flex: 1;
+    min-height: 500px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--border-color);
+}
+
+.info-window-card {
+    padding: 8px;
+    min-width: 180px;
+}
+
+.info-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.info-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--primary-color);
+}
+
+.info-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.info-profile strong {
+    font-size: 1rem;
+    color: #1a1a1a;
+    display: block;
+}
+
+.info-profile p {
+    font-size: 0.8rem;
+    color: #666;
+    margin: 0;
+}
+
+.info-window-card hr {
+    margin: 12px 0;
+    border: none;
+    border-top: 1px solid #eee;
+}
+
+.info-details p {
+    margin: 4px 0;
+    font-size: 0.85rem;
+    color: #444;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.overall-report p {
+    color: #1a1a1a;
+}
+
+.map-avatar-marker {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 3px solid var(--primary-color);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: white;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    /* Create a point tip at the bottom so it looks like a location pin */
+    position: relative;
+    z-index: 10;
+}
+
+.map-avatar-marker:hover {
+    transform: scale(1.1);
+    z-index: 100 !important;
+}
+
+.map-avatar-marker.start-marker {
+    border-color: var(--success);
+}

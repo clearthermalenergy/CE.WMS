@@ -17,7 +17,7 @@ export function getAuthToken() {
     return _authToken;
 }
 
-async function request(url, options = {}) {
+export async function request(url, options = {}) {
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers,

@@ -14,6 +14,7 @@ const navItems = [
     { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
     { path: '/leads', icon: Target, label: 'Leads' },
     { path: '/leaves', icon: CalendarDays, label: 'Leaves' },
+    { path: '/attendance', icon: Zap, label: 'Attendance' },
     { path: '/activities', icon: Activity, label: 'Activities' },
     { path: '/reports', icon: BarChart3, label: 'Reports' },
     { path: '/users', icon: UserCog, label: 'Users' },

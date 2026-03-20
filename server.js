@@ -16,6 +16,7 @@ import LeaveBalance from './models/LeaveBalance.js';
 import Activity from './models/Activity.js';
 import Notification from './models/Notification.js';
 import RolePermission from './models/RolePermission.js';
+import Attendance from './models/Attendance.js';
 
 const app = express();
 // CONF-01: Add security headers to all responses
@@ -529,6 +530,221 @@ app.put('/api/notifications/mark-all-read', async (req, res) => {
 });
 
 app.put('/api/notifications/:id', async (req, res) => res.json(await Notification.findOneAndUpdate({ id: req.params.id }, req.body, { new: true })));
+
+// ============================================
+// ATTENDANCE & LOCATION TRACKING
+// ============================================
+
+// Haversine formula to calculate distance between two lat/lng points in km
+function calculateDistanceKM(lat1, lon1, lat2, lon2) {
+    if ((lat1 == lat2) && (lon1 == lon2)) return 0;
+    else {
+        var radlat1 = Math.PI * lat1/180;
+        var radlat2 = Math.PI * lat2/180;
+        var theta = lon1-lon2;
+        var radtheta = Math.PI * theta/180;
+        var dist = Math.sin(radlat1) * Math.sin(radlat2) + Math.cos(radlat1) * Math.cos(radlat2) * Math.cos(radtheta);
+        if (dist > 1) dist = 1;
+        dist = Math.acos(dist);
+        dist = dist * 180/Math.PI;
+        dist = dist * 60 * 1.1515;
+        return dist * 1.609344;
+    }
+}
+
+app.get('/api/attendance/today', async (req, res) => {
+    try {
+        const date = new Date().toISOString().split('T')[0];
+        const record = await Attendance.findOne({ employeeId: req.user.id, date });
+        res.json(record);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/attendance/checkin', async (req, res) => {
+    try {
+        const date = new Date().toISOString().split('T')[0];
+        const { lat, lng, photoDataUrl } = req.body;
+        
+        let record = await Attendance.findOne({ employeeId: req.user.id, date });
+        
+        if (record) {
+            return res.status(400).json({ error: 'Already checked in today.' });
+        }
+        
+        record = new Attendance({
+            id: generateId('ATT'),
+            employeeId: req.user.id,
+            date,
+            checkIn: {
+                timestamp: new Date(),
+                location: { lat, lng },
+                selfieUrl: photoDataUrl // In a real app, upload this base64 string to Cloudinary/S3 first
+            },
+            routePoints: [{ timestamp: new Date(), lat, lng }]
+        });
+        
+        await record.save();
+        res.json(record);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to Check-in', details: err.message });
+    }
+});
+
+app.post('/api/attendance/checkout', async (req, res) => {
+    try {
+        const date = new Date().toISOString().split('T')[0];
+        const { lat, lng, photoDataUrl } = req.body;
+        
+        const record = await Attendance.findOne({ employeeId: req.user.id, date });
+        if (!record || !record.checkIn) {
+            return res.status(400).json({ error: 'No check-in found for today.' });
+        }
+        if (record.checkOut && record.checkOut.timestamp) {
+             return res.status(400).json({ error: 'Already checked out today.' });
+        }
+        
+        record.checkOut = {
+             timestamp: new Date(),
+             location: { lat, lng },
+             selfieUrl: photoDataUrl
+        };
+        record.routePoints.push({ timestamp: new Date(), lat, lng });
+        
+        // Calculate basic distance for the day
+        let totalKm = 0;
+        for (let i = 1; i < record.routePoints.length; i++) {
+             totalKm += calculateDistanceKM(
+                 record.routePoints[i-1].lat, record.routePoints[i-1].lng,
+                 record.routePoints[i].lat, record.routePoints[i].lng
+             );
+        }
+        record.summary.totalDistanceKm = Math.round(totalKm * 10) / 10;
+        
+        await record.save();
+        res.json(record);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to Check-out', details: err.message });
+    }
+});
+
+app.post('/api/attendance/track', async (req, res) => {
+    try {
+        const date = new Date().toISOString().split('T')[0];
+        const { lat, lng, isWaitPoint, waitTimeMinutes } = req.body;
+        
+        const record = await Attendance.findOne({ employeeId: req.user.id, date });
+        if (!record || record.checkOut?.timestamp) {
+            // Cannot track if not checked in or already checked out
+            return res.json({ ignored: true });
+        }
+        
+        record.routePoints.push({ timestamp: new Date(), lat, lng, isWaitPoint, waitTimeMinutes });
+        
+        if (isWaitPoint && waitTimeMinutes) {
+            record.summary.totalWaitTimeMinutes += waitTimeMinutes;
+        }
+        
+        await record.save();
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to track location' });
+    }
+});
+
+app.get('/api/attendance/reports', async (req, res) => {
+    try {
+        // Find all attendance records, optionally filter by query params (date range, user)
+        let query = {};
+        if (req.user.role !== 'Admin' && req.user.role !== 'Manager') {
+             // Normal users only see their own attendance
+             query.employeeId = req.user.id;
+        }
+        const records = await Attendance.find(query).sort({ date: -1 }).limit(50);
+        res.json(records);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/attendance/simulate', async (req, res) => {
+    try {
+        const date = new Date().toISOString().split('T')[0];
+        let record = await Attendance.findOne({ employeeId: req.user.id, date });
+        
+        // Hyderabad sample coordinates for demonstration
+        const points = [
+            { lat: 17.4399, lng: 78.4983, name: 'Head Office (Check-In)', waitTime: 0 },
+            { lat: 17.4420, lng: 78.4950, name: 'En-route point 1', waitTime: 0 },
+            { lat: 17.4480, lng: 78.4890, name: 'GVK One Mall (Client Meeting)', waitTime: 45 },
+            { lat: 17.4520, lng: 78.4850, name: 'En-route point 2', waitTime: 0 },
+            { lat: 17.4600, lng: 78.4800, name: 'Kukatpally Site (Inspection)', waitTime: 120 },
+            { lat: 17.4550, lng: 78.4750, name: 'Lunch Break (Cafe)', waitTime: 60 },
+            { lat: 17.4500, lng: 78.4700, name: 'Jubilee Hills (Client B Meeting)', waitTime: 30 },
+            { lat: 17.4450, lng: 78.4800, name: 'En-route point 3', waitTime: 0 },
+            { lat: 17.4420, lng: 78.4850, name: 'Head Office (Check-Out)', waitTime: 0 }
+        ];
+
+        let totalWaitTime = 0;
+        let totalDistance = 0;
+        
+        let generatedRoute = [];
+        let baseTime = new Date();
+        baseTime.setHours(9, 0, 0, 0);
+
+        for (let i = 0; i < points.length; i++) {
+            const p = points[i];
+            
+            if (i > 0) {
+                 totalDistance += calculateDistanceKM(points[i-1].lat, points[i-1].lng, p.lat, p.lng);
+            }
+            if (p.waitTime > 0) {
+                 totalWaitTime += p.waitTime;
+            }
+            
+            generatedRoute.push({
+                timestamp: new Date(baseTime.getTime() + i * 3600000), // adding 1 hr linearly
+                lat: p.lat,
+                lng: p.lng,
+                isWaitPoint: p.waitTime > 0,
+                waitTimeMinutes: p.waitTime,
+                placeName: p.name
+            });
+        }
+        
+        if (record) {
+             await Attendance.deleteOne({ _id: record._id });
+        }
+        
+        record = new Attendance({
+            id: generateId('ATT'),
+            employeeId: req.user.id,
+            date,
+            checkIn: {
+                timestamp: generatedRoute[0].timestamp,
+                location: { lat: generatedRoute[0].lat, lng: generatedRoute[0].lng, address: generatedRoute[0].placeName },
+                selfieUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop'
+            },
+            checkOut: {
+                timestamp: generatedRoute[generatedRoute.length - 1].timestamp,
+                location: { lat: generatedRoute[generatedRoute.length - 1].lat, lng: generatedRoute[generatedRoute.length - 1].lng, address: generatedRoute[generatedRoute.length - 1].placeName },
+                selfieUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop'
+            },
+            routePoints: generatedRoute,
+            summary: {
+                totalDistanceKm: Math.round(totalDistance * 10) / 10,
+                totalWaitTimeMinutes: totalWaitTime,
+                status: 'Present'
+            }
+        });
+        
+        await record.save();
+        res.json({ success: true, record });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to simulate Data' });
+    }
+});
 
 // ============================================
 // SERVE FRONTEND BUILD (Production Web App)
