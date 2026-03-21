@@ -31,7 +31,9 @@ const attendanceSchema = new mongoose.Schema({
         lat: { type: Number },
         lng: { type: Number },
         isWaitPoint: { type: Boolean, default: false },
-        waitTimeMinutes: { type: Number, default: 0 }
+        waitTimeMinutes: { type: Number, default: 0 },
+        placeName: { type: String },
+        companyName: { type: String }
     }],
     
     // Daily summary stats calculated at checkout

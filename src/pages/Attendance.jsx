@@ -323,6 +323,7 @@ export default function Attendance() {
                                                     </div>
                                                     <hr/>
                                                     <div className="info-details">
+                                                        {marker.companyName && <p><MapPin size={12}/> <strong>Company:</strong> {marker.companyName}</p>}
                                                         <p><MapPin size={12}/> <strong>Location:</strong> {marker.placeName || "Meeting / Stop"}</p>
                                                         <p><Navigation2 size={12}/> <strong>Wait Time:</strong> {marker.waitTimeMinutes} min</p>
                                                     </div>

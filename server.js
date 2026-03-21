@@ -675,15 +675,15 @@ app.post('/api/attendance/simulate', async (req, res) => {
         
         // Hyderabad sample coordinates for demonstration
         const points = [
-            { lat: 17.4399, lng: 78.4983, name: 'Head Office (Check-In)', waitTime: 0 },
-            { lat: 17.4420, lng: 78.4950, name: 'En-route point 1', waitTime: 0 },
-            { lat: 17.4480, lng: 78.4890, name: 'GVK One Mall (Client Meeting)', waitTime: 45 },
-            { lat: 17.4520, lng: 78.4850, name: 'En-route point 2', waitTime: 0 },
-            { lat: 17.4600, lng: 78.4800, name: 'Kukatpally Site (Inspection)', waitTime: 120 },
-            { lat: 17.4550, lng: 78.4750, name: 'Lunch Break (Cafe)', waitTime: 60 },
-            { lat: 17.4500, lng: 78.4700, name: 'Jubilee Hills (Client B Meeting)', waitTime: 30 },
-            { lat: 17.4450, lng: 78.4800, name: 'En-route point 3', waitTime: 0 },
-            { lat: 17.4420, lng: 78.4850, name: 'Head Office (Check-Out)', waitTime: 0 }
+            { lat: 17.4399, lng: 78.4983, name: 'Head Office (Check-In)', waitTime: 0, company: 'Clear Energy' },
+            { lat: 17.4420, lng: 78.4950, name: 'En-route point 1', waitTime: 0, company: '' },
+            { lat: 17.4480, lng: 78.4890, name: 'GVK One Mall', waitTime: 45, company: 'Reliance Retail Ltd' },
+            { lat: 17.4520, lng: 78.4850, name: 'En-route point 2', waitTime: 0, company: '' },
+            { lat: 17.4600, lng: 78.4800, name: 'Kukatpally Site', waitTime: 120, company: 'Aurobindo Pharma' },
+            { lat: 17.4550, lng: 78.4750, name: 'Lunch Break (Cafe)', waitTime: 60, company: '' },
+            { lat: 17.4500, lng: 78.4700, name: 'Jubilee Hills', waitTime: 30, company: 'Dr. Reddy Labs' },
+            { lat: 17.4450, lng: 78.4800, name: 'En-route point 3', waitTime: 0, company: '' },
+            { lat: 17.4420, lng: 78.4850, name: 'Head Office (Check-Out)', waitTime: 0, company: 'Clear Energy' }
         ];
 
         let totalWaitTime = 0;
@@ -709,7 +709,8 @@ app.post('/api/attendance/simulate', async (req, res) => {
                 lng: p.lng,
                 isWaitPoint: p.waitTime > 0,
                 waitTimeMinutes: p.waitTime,
-                placeName: p.name
+                placeName: p.name,
+                companyName: p.company
             });
         }
         
