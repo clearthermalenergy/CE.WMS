@@ -109,3 +109,7 @@ export const markAllNotificationsRead = () => request('/notifications/mark-all-r
 
 // Settings
 export const updateRolePermissions = (role, permissions) => request('/settings/roles', { method: 'PUT', body: { role, permissions } });
+
+// Attendance (Admin)
+export const fetchAttendanceSummary = (period) => request(`/attendance/summary${period ? `?period=${period}` : ''}`);
+export const simulateAdminAttendance = () => request('/attendance/simulate-all', { method: 'POST' });

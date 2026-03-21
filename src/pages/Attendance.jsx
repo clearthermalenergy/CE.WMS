@@ -10,8 +10,247 @@ const containerStyle = {
   height: '100%'
 };
 
+function AdminAttendance() {
+    const [period, setPeriod] = useState('1d');
+    const [records, setRecords] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const { isLoaded } = useJsApiLoader({ id: 'google-map-script', googleMapsApiKey: "" });
+    const [map, setMap] = useState(null);
+    const [activeMarker, setActiveMarker] = useState(null);
+
+    const onLoadMap = useCallback(m => setMap(m), []);
+    const onUnmountMap = useCallback(m => setMap(null), []);
+
+    const colors = ['#22c55e', '#3b82f6', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
+    const employeeColorMap = {};
+    let colorIndex = 0;
+    records.forEach(r => {
+        if (!employeeColorMap[r.employeeName]) {
+            employeeColorMap[r.employeeName] = colors[colorIndex % colors.length];
+            colorIndex++;
+        }
+    });
+
+    useEffect(() => { loadData(); }, [period]);
+
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            const data = await api.fetchAttendanceSummary(period === 'all' ? '' : period);
+            setRecords(data || []);
+        } catch (error) {
+            console.error('Failed to load tracking summary:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const [isSimulating, setIsSimulating] = useState(false);
+    const handleSimulateAll = async () => {
+        setIsSimulating(true);
+        try {
+            await api.simulateAdminAttendance();
+            await loadData();
+        } catch (error) {
+            console.error('Failed to simulate fleet data:', error);
+        } finally {
+            setIsSimulating(false);
+        }
+    };
+
+    return (
+        <div className="attendance-page" style={{ padding: '2rem' }}>
+            <header className="page-header" style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Employee Tracking Summary</h2>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <button 
+                        className="btn outline sm text-purple" 
+                        onClick={handleSimulateAll}
+                        disabled={isSimulating}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                        {isSimulating ? <Loader2 size={16} className="spin" /> : <Sparkles size={16} />}
+                        {isSimulating ? 'Generating...' : 'Load Fleet Demo Data'}
+                    </button>
+                    <span style={{color: '#9ca3af', fontSize: '0.875rem', marginLeft: '1rem'}}>Filter Period:</span>
+                    <select 
+                        style={{ padding: '0.5rem', borderRadius: '4px', background: '#1f2937', color: 'white', border: '1px solid #374151' }}
+                        value={period} 
+                        onChange={e => setPeriod(e.target.value)}
+                    >
+                        <option value="1d">Last 1 Day</option>
+                        <option value="3d">Last 3 Days</option>
+                        <option value="1w">Last 1 Week</option>
+                        <option value="1m">Last 1 Month</option>
+                        <option value="all">All Time</option>
+                    </select>
+                </div>
+            </header>
+
+            <div className="card" style={{ overflowX: 'auto', background: '#111827', border: '1px solid #1f2937' }}>
+                <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+                    <thead>
+                        <tr style={{ borderBottom: '1px solid #374151', color: '#9ca3af', fontSize: '0.875rem' }}>
+                            <th style={{ padding: '1rem' }}>S.No</th>
+                            <th style={{ padding: '1rem' }}>Employee</th>
+                            <th style={{ padding: '1rem' }}>Date</th>
+                            <th style={{ padding: '1rem' }}>Check In</th>
+                            <th style={{ padding: '1rem' }}>Check Out</th>
+                            <th style={{ padding: '1rem' }}>Customers/Company Visited</th>
+                            <th style={{ padding: '1rem' }}>Distance Travelled</th>
+                            <th style={{ padding: '1rem' }}>Wait Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {loading ? (
+                            <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af' }}><Loader2 size={24} className="spin" style={{margin: '0 auto'}} /></td></tr>
+                        ) : records.length === 0 ? (
+                            <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af' }}>No tracking data found for this period.</td></tr>
+                        ) : (
+                            records.map((r, i) => (
+                                <tr key={r.id || i} style={{ borderBottom: '1px solid #1f2937', fontSize: '0.875rem' }}>
+                                    <td style={{ padding: '1rem', color: '#9ca3af' }}>{i + 1}</td>
+                                    <td style={{ padding: '1rem', fontWeight: '600', color: 'white' }}>{r.employeeName}</td>
+                                    <td style={{ padding: '1rem', color: '#d1d5db' }}>{new Date(r.date).toLocaleDateString()}</td>
+                                    <td style={{ padding: '1rem', color: '#10b981' }}>{r.checkInTime ? new Date(r.checkInTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-'}</td>
+                                    <td style={{ padding: '1rem', color: '#ef4444' }}>{r.checkOutTime ? new Date(r.checkOutTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-'}</td>
+                                    <td style={{ padding: '1rem', color: '#d1d5db' }}>{r.companiesVisited || '-'}</td>
+                                    <td style={{ padding: '1rem', color: '#818cf8', fontWeight: '500' }}>{r.totalDistanceKm} km</td>
+                                    <td style={{ padding: '1rem', color: '#fb923c', fontWeight: '500' }}>{r.totalWaitTimeMinutes} min</td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {isLoaded && records.filter(r => r.routePoints && r.routePoints.length > 0).length > 0 && (
+                <div className="card" style={{ marginTop: '2rem', padding: '1rem', background: '#111827', border: '1px solid #1f2937' }}>
+                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                        {Object.entries(employeeColorMap).map(([name, color]) => (
+                            <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: color }}></div>
+                                <span style={{ color: '#d1d5db', fontSize: '0.875rem' }}>{name}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <div style={{ height: '600px', width: '100%', borderRadius: '8px', overflow: 'hidden' }}>
+                        <GoogleMap 
+                            mapContainerStyle={containerStyle} 
+                            zoom={12} 
+                            center={{ lat: 17.4399, lng: 78.4983 }}
+                            onLoad={onLoadMap}
+                            onUnmount={onUnmountMap}
+                        >
+                            {records.map(r => {
+                                if (!r.routePoints || r.routePoints.length === 0) return null;
+                                const path = r.routePoints.map(p => ({ lat: p.lat, lng: p.lng }));
+                                const lastPoint = r.routePoints[r.routePoints.length - 1];
+                                const employeeColor = employeeColorMap[r.employeeName];
+
+                                return (
+                                    <div key={r.id}>
+                                        <Polyline
+                                            path={path}
+                                            options={{ strokeColor: employeeColor, strokeOpacity: 0.8, strokeWeight: 4 }}
+                                        />
+                                        
+                                        {/* Render Red Dots for stops */}
+                                        {r.routePoints.map((p, pIdx) => (
+                                            p.isWaitPoint && (
+                                                <div key={`stop=${pIdx}`}>
+                                                    <Marker
+                                                        position={{ lat: p.lat, lng: p.lng }}
+                                                        icon={{
+                                                            path: window.google?.maps?.SymbolPath?.CIRCLE || 0,
+                                                            fillColor: '#ef4444', // Red for stops
+                                                            fillOpacity: 1,
+                                                            strokeWeight: 2,
+                                                            strokeColor: '#ffffff',
+                                                            scale: 7
+                                                        }}
+                                                        onClick={() => setActiveMarker(`${r.id}-stop-${pIdx}`)}
+                                                    />
+                                                    {activeMarker === `${r.id}-stop-${pIdx}` && (
+                                                        <InfoWindow 
+                                                            position={{ lat: p.lat, lng: p.lng }} 
+                                                            onCloseClick={() => setActiveMarker(null)}
+                                                        >
+                                                            <div className="info-window-card">
+                                                                <div className="info-profile">
+                                                                    <div>
+                                                                        <strong>{r.employeeName}</strong>
+                                                                        <p>Stop Activity</p>
+                                                                    </div>
+                                                                </div>
+                                                                <hr/>
+                                                                <div className="info-details">
+                                                                    {p.companyName && <p><strong>Company:</strong> {p.companyName}</p>}
+                                                                    <p><strong>Location:</strong> {p.placeName || "Meeting / Stop"}</p>
+                                                                    <p><strong>Wait Time:</strong> {p.waitTimeMinutes} min</p>
+                                                                </div>
+                                                            </div>
+                                                        </InfoWindow>
+                                                    )}
+                                                </div>
+                                            )
+                                        ))}
+
+                                        <OverlayView
+                                            position={{ lat: lastPoint.lat, lng: lastPoint.lng }}
+                                            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                                            getPixelPositionOffset={(width, height) => ({ x: -(width / 2), y: -(height / 2) })}
+                                        >
+                                            <div 
+                                                className="map-avatar-marker start-marker"
+                                                style={{ 
+                                                    backgroundImage: `url(${r.employeeAvatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop'})`,
+                                                    border: `3px solid ${employeeColor}`
+                                                }}
+                                                onClick={() => setActiveMarker(r.id)}
+                                            />
+                                        </OverlayView>
+
+                                        {/* Avatar click summary */}
+                                        {activeMarker === r.id && (
+                                            <InfoWindow 
+                                                position={{ lat: lastPoint.lat, lng: lastPoint.lng }} 
+                                                onCloseClick={() => setActiveMarker(null)}
+                                            >
+                                                <div className="info-window-card">
+                                                    <div className="info-profile">
+                                                        <div>
+                                                            <strong>{r.employeeName}</strong>
+                                                            <p>Current Status</p>
+                                                        </div>
+                                                    </div>
+                                                    <hr/>
+                                                    <div className="info-details">
+                                                        <p><strong>Distance:</strong> {r.totalDistanceKm} km</p>
+                                                        <p><strong>Wait:</strong> {r.totalWaitTimeMinutes} min</p>
+                                                        <p><strong>Stops:</strong> {r.companiesVisited.split(', ').filter(Boolean).length}</p>
+                                                    </div>
+                                                </div>
+                                            </InfoWindow>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </GoogleMap>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function Attendance() {
     const { user } = useAuth();
+
+    if (user?.role === 'Admin') {
+        return <AdminAttendance />;
+    }
     const [status, setStatus] = useState('loading');
     const [attendanceData, setAttendanceData] = useState(null);
     const [location, setLocation] = useState(null);

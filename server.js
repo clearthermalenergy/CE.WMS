@@ -89,7 +89,7 @@ app.use(cookieParser());
 // ID Generator
 // ============================================
 function generateId(prefix = '') {
-    return `${prefix}${Date.now()}`;
+    return `${prefix}${Date.now()}${Math.floor(Math.random() * 1000)}`;
 }
 
 // ============================================
@@ -562,6 +562,49 @@ app.get('/api/attendance/today', async (req, res) => {
     }
 });
 
+app.get('/api/attendance/summary', async (req, res) => {
+    try {
+        if (req.user.role !== 'Admin') return res.status(403).json({error: 'Forbidden'});
+        
+        let query = {};
+        const { period } = req.query;
+        if (period) {
+            let filterDate = new Date();
+            if (period === '1d') filterDate.setDate(filterDate.getDate() - 1);
+            else if (period === '3d') filterDate.setDate(filterDate.getDate() - 3);
+            else if (period === '1w') filterDate.setDate(filterDate.getDate() - 7);
+            else if (period === '1m') filterDate.setMonth(filterDate.getMonth() - 1);
+            const dateStr = filterDate.toISOString().split('T')[0];
+            query = { date: { $gte: dateStr } };
+        }
+
+        const records = await Attendance.find(query).sort({ date: -1 });
+        const Employee = mongoose.model('Employee');
+        const employees = await Employee.find({});
+        
+        const summary = records.map(r => {
+            const emp = employees.find(e => e.id === r.employeeId);
+            const companies = r.routePoints?.filter(p => p.companyName).map(p => p.companyName) || [];
+            const uniqueCompanies = [...new Set(companies)];
+            return {
+                id: r.id,
+                date: r.date,
+                employeeName: emp ? emp.name : 'Unknown',
+                employeeAvatar: r.checkIn?.selfieUrl || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop",
+                checkInTime: r.checkIn?.timestamp,
+                checkOutTime: r.checkOut?.timestamp,
+                companiesVisited: uniqueCompanies.join(', '),
+                totalDistanceKm: r.summary?.totalDistanceKm || 0,
+                totalWaitTimeMinutes: r.summary?.totalWaitTimeMinutes || 0,
+                routePoints: r.routePoints || []
+            }
+        });
+        res.json(summary);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.post('/api/attendance/checkin', async (req, res) => {
     try {
         const date = new Date().toISOString().split('T')[0];
@@ -744,6 +787,110 @@ app.post('/api/attendance/simulate', async (req, res) => {
         res.json({ success: true, record });
     } catch (err) {
         res.status(500).json({ error: 'Failed to simulate Data' });
+    }
+});
+
+app.post('/api/attendance/simulate-all', async (req, res) => {
+    try {
+        if (req.user.role !== 'Admin') return res.status(403).json({error: 'Forbidden'});
+        
+        await Attendance.deleteMany({}); // Clear existing
+        
+        const Employee = mongoose.model('Employee');
+        const allEmployees = await Employee.find({ role: { $ne: 'Admin' } }); // Skip admins
+        
+        const date = new Date().toISOString().split('T')[0];
+        const attendances = [];
+
+        // Distribute employees across 4 unique demo routes
+        const routeSets = [
+            [
+                { lat: 17.4399, lng: 78.4983, name: 'Head Office (Check-In)', wait: 0, company: 'Clear Energy' },
+                { lat: 17.4420, lng: 78.4950, name: 'En-route', wait: 0, company: '' },
+                { lat: 17.4480, lng: 78.4890, name: 'GVK One Mall', wait: 45, company: 'Reliance Retail Ltd' },
+                { lat: 17.4520, lng: 78.4850, name: 'En-route', wait: 0, company: '' },
+                { lat: 17.4600, lng: 78.4800, name: 'Kukatpally Site', wait: 120, company: 'Aurobindo Pharma' }
+            ],
+            [
+                { lat: 17.4399, lng: 78.4983, name: 'Head Office (Check-In)', wait: 0, company: 'Clear Energy' },
+                { lat: 17.4350, lng: 78.5000, name: 'En-route', wait: 0, company: '' },
+                { lat: 17.4300, lng: 78.5100, name: 'Tarnaka Office', wait: 60, company: 'Wipro Technologies' },
+                { lat: 17.4200, lng: 78.5200, name: 'En-route', wait: 0, company: '' },
+                { lat: 17.4000, lng: 78.5300, name: 'L B Nagar Hub', wait: 90, company: 'DLF Group' }
+            ],
+            [
+                { lat: 17.4399, lng: 78.4983, name: 'Head Office (Check-In)', wait: 0, company: 'Clear Energy' },
+                { lat: 17.4450, lng: 78.4900, name: 'En-route', wait: 0, company: '' },
+                { lat: 17.4500, lng: 78.4800, name: 'Ameerpet Center', wait: 30, company: 'Tata Power Solutions' },
+                { lat: 17.4550, lng: 78.4600, name: 'En-route', wait: 0, company: '' },
+                { lat: 17.4500, lng: 78.4400, name: 'Jubilee Hills Checkpost', wait: 45, company: 'Apollo Hospitals' }
+            ],
+            [
+                { lat: 17.4399, lng: 78.4983, name: 'Head Office (Check-In)', wait: 0, company: 'Clear Energy' },
+                { lat: 17.4200, lng: 78.4800, name: 'Banjara Hills', wait: 60, company: 'Marriott Hotels' },
+                { lat: 17.4100, lng: 78.4700, name: 'Panjagutta Junction', wait: 30, company: 'HDFC Bank' }
+            ]
+        ];
+
+        let tIndex = 0;
+        for (const emp of allEmployees) {
+            const pointsToUse = routeSets[tIndex % routeSets.length];
+            tIndex++;
+
+            let totalWait = 0;
+            let totalDist = 0;
+            let generatedRoute = [];
+
+            let baseTime = new Date();
+            baseTime.setHours(9, 0, 0, 0);
+
+            for (let i = 0; i < pointsToUse.length; i++) {
+                const p = pointsToUse[i];
+                if (i > 0) {
+                    const prev = pointsToUse[i-1];
+                    totalDist += calculateDistanceKM(prev.lat, prev.lng, p.lat, p.lng);
+                }
+                totalWait += p.wait;
+                generatedRoute.push({
+                    timestamp: new Date(baseTime.getTime() + i * 3600000),
+                    lat: p.lat,
+                    lng: p.lng,
+                    isWaitPoint: p.wait > 0,
+                    waitTimeMinutes: p.wait,
+                    placeName: p.name,
+                    companyName: p.company
+                });
+            }
+
+            const checkInPoint = generatedRoute[0];
+            const checkOutPoint = generatedRoute[generatedRoute.length - 1];
+
+            attendances.push({
+                id: generateId('ATT'),
+                employeeId: emp.id,
+                date,
+                checkIn: {
+                    timestamp: checkInPoint.timestamp,
+                    location: { lat: checkInPoint.lat, lng: checkInPoint.lng },
+                    selfieUrl: `https://ui-avatars.com/api/?name=${emp.name.replace(' ', '+')}&background=random`
+                },
+                checkOut: {
+                    timestamp: checkOutPoint.timestamp,
+                    location: { lat: checkOutPoint.lat, lng: checkOutPoint.lng }
+                },
+                routePoints: generatedRoute,
+                summary: {
+                    totalDistanceKm: parseFloat(totalDist.toFixed(1)),
+                    totalWaitTimeMinutes: totalWait,
+                    status: 'Present'
+                }
+            });
+        }
+
+        await Attendance.insertMany(attendances);
+        res.json({ success: true, count: attendances.length });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
